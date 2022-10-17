@@ -1,22 +1,17 @@
 const express = require("express");
 const app = express();
+const bodyParser = require("body-parser");
 
-const databaseConnection = require("./api/databases/database-configuration.js");
-
-// const bodyParser = require("body-parser");
-
-require("dotenv/config");
+const databaseConnection = require("./apis/databases/database-configuration.js");
+const userRoutes = require("./apis/routes/user-routes");
 
 databaseConnection.databaseConnection();
 
-console.log("Connecting...");
-
+app.use(bodyParser.json());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/storage/images/profile", express.static("storage/images/profile"));
-
-const userRoutes = require("./api/routes/user-routes");
 
 //User routes
 app.use("/apis/users", userRoutes);
