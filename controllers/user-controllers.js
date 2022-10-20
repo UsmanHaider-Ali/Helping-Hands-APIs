@@ -1,42 +1,24 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const nodemailer = require("nodemailer");
-let Validator = require("validatorjs");
-
-// const multer = require("multer");
+const Validator = require("validatorjs");
+const fs = require("fs");
 
 const User = require("../models/user-model.js");
 const userModel = require("../models/user-model.js");
 const validationRules = require("../middlewares/validations.js");
-
-// const imageStorage = multer.diskStorage({
-//   destination: (req, file, cb) => {
-//     cb(null, "./storage/images/profile/");
-//   },
-//   filename: (req, file, cb) => {
-//     cb(null, new Date().toISOString() + file.originalname.replace(/\s/g, "_"));
-//   },
-// });
-
-// const imageFilter = (req, file, cb) => {
-//   if (file.mimetype === "image/jpeg" || file.mimetype === "image/png") {
-//     cb(null, true);
-//   } else {
-//     cb(null, false);
-//   }
-// };
-
-// const uploadImage = multer({
-//   storage: imageStorage,
-//   limits: {
-//     fileSize: 1024 * 1024 * 5,
-//   },
-//   fileFilter: imageFilter,
-// });
+const sendEmail = require("../middlewares/send-mail.js");
 
 //User Registration Controller
 exports.registerUser = async (req, res, next) => {
+  var imagePath = "";
+
+  if (req.file === undefined) {
+    imagePath = "_";
+  } else {
+    imagePath = req.file.path;
+  }
+
   const {
     wallet_key,
     name,
@@ -54,7 +36,6 @@ exports.registerUser = async (req, res, next) => {
   const validation = new Validator(
     {
       wallet_key,
-      // image,
       name,
       email,
       phone,
@@ -77,14 +58,6 @@ exports.registerUser = async (req, res, next) => {
     return;
   }
 
-  //   if (req.file.path == null) {
-  //     res.json({
-  //       message: "The image field is required.",
-  //       success: false,
-  //     });
-  //     return;
-  // }
-
   const user = await userModel.findOne({ email });
 
   if (user) {
@@ -92,6 +65,10 @@ exports.registerUser = async (req, res, next) => {
       message: "This email is already registered.",
       success: false,
     });
+    if (!(req.file === undefined)) {
+      var filePath = req.file.path;
+      fs.unlinkSync(filePath);
+    }
     return;
   }
 
@@ -102,13 +79,17 @@ exports.registerUser = async (req, res, next) => {
       message: "Something wrong with password, please try again.",
       success: false,
     });
+    if (!(req.file === undefined)) {
+      var filePath = req.file.path;
+      fs.unlinkSync(filePath);
+    }
     return;
   }
 
   const newUser = new User({
     _id: new mongoose.Types.ObjectId(),
     wallet_key: wallet_key,
-    image: req.file.path,
+    image: imagePath,
     name: name,
     email: email,
     isEmailVerified: false,
@@ -130,26 +111,19 @@ exports.registerUser = async (req, res, next) => {
       message: "Something wrong, please try again.",
       success: true,
     });
+    if (!(req.file === undefined)) {
+      var filePath = req.file.path;
+      fs.unlinkSync(filePath);
+    }
     return;
   }
 
-  res.send({
-    message: "User registered successfully.",
-    success: true,
-    data: {
-      id: result["_id"],
-      wallet_key: result["wallet_key"],
-      image: result["image"],
-      name: result["name"],
-      email: result["email"],
-      isEmailVerified: result["isEmailVerified"],
-      phone: result["phone"],
-      isPhoneVerified: result["isPhoneVerified"],
-      address: result["address"],
-      date_of_birth: result["date_of_birth"],
-      user_type: result["user_type"],
-    },
-  });
+  sendEmail(
+    req,
+    res,
+    next,
+    "User registered, check email for OTP verification."
+  );
 };
 
 //User Login Controller
@@ -202,27 +176,37 @@ exports.loginUser = async (req, res, next) => {
     }
   );
 
-  res.json({
-    message: "User login successfully.",
-    success: true,
-    data: {
-      id: user["_id"],
-      wallet_key: user["wallet_key"],
-      image: user["image"],
-      name: user["name"],
-      email: user["email"],
-      isEmailVerified: user["isEmailVerified"],
-      phone: user["phone"],
-      isPhoneVerified: user["isPhoneVerified"],
-      address: user["address"],
-      addressDetails: user["addressDetails"],
-      latitude: user["latitude"],
-      longitude: user["longitude"],
-      date_of_birth: user["date_of_birth"],
-      user_type: user["user_type"],
-      token: newToken,
-    },
-  });
+  if (user["isEmailVerified"]) {
+    res.json({
+      message: "User login successfully.",
+      success: true,
+      data: {
+        id: user["_id"],
+        wallet_key: user["wallet_key"],
+        image: user["image"],
+        name: user["name"],
+        email: user["email"],
+        isEmailVerified: user["isEmailVerified"],
+        phone: user["phone"],
+        isPhoneVerified: user["isPhoneVerified"],
+        address: user["address"],
+        addressDetails: user["addressDetails"],
+        latitude: user["latitude"],
+        longitude: user["longitude"],
+        date_of_birth: user["date_of_birth"],
+        user_type: user["user_type"],
+        token: newToken,
+      },
+    });
+    return;
+  }
+
+  sendEmail(
+    req,
+    res,
+    next,
+    "Email not verified, check email for OTP verification."
+  );
 };
 
 //Social Login Controller
@@ -348,10 +332,7 @@ exports.socialLogin = async (req, res, next) => {
 exports.sendOpt = async (req, res, next) => {
   const { email } = req.body;
 
-  const validation = new Validator(
-    { email },
-    validationRules.sendOtpValidations
-  );
+  const validation = new Validator({ email }, validationRules.emailValidations);
 
   if (validation.fails()) {
     res.json({
@@ -371,51 +352,14 @@ exports.sendOpt = async (req, res, next) => {
     return;
   }
 
-  const otp = Math.floor(Math.random() * (999999 - 100000)) + 100000;
-
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.GOOGLE_APP_EMAIL,
-      pass: process.env.GOOGLE_APP_PASSWORD,
-    },
-  });
-
-  const mailOption = {
-    from: process.env.GOOGLE_APP_EMAIL,
-    to: req.body.email,
-    subject: "Email Verification Code",
-    text: `${otp}`,
-  };
-
-  transporter.sendMail(mailOption, (error, info) => {
-    if (error) {
-      res.json({
-        message: error,
-        success: false,
-      });
-      return;
-    }
-
-    res.json({
-      message: "Verification code has sent.",
-      success: true,
-      data: {
-        otp_code: otp,
-        email: email,
-      },
-    });
-  });
+  sendEmail(req, res, next, "Check email for OTP verification.");
 };
 
 //Verify Email
 exports.verifyEmail = async (req, res, next) => {
   const { email } = req.body;
 
-  const validation = new Validator(
-    { email },
-    validationRules.sendOtpValidations
-  );
+  const validation = new Validator({ email }, validationRules.emailValidations);
 
   if (validation.fails()) {
     res.json({
@@ -442,22 +386,22 @@ exports.verifyEmail = async (req, res, next) => {
   res.json({
     message: "Email verified successfully.",
     success: true,
-    data: {
-      id: user["_id"],
-      wallet_key: user["wallet_key"],
-      image: user["image"],
-      name: user["name"],
-      email: user["email"],
-      isEmailVerified: user["isEmailVerified"],
-      phone: user["phone"],
-      isPhoneVerified: user["isPhoneVerified"],
-      address: user["address"],
-      addressDetails: user["addressDetails"],
-      latitude: user["latitude"],
-      longitude: user["longitude"],
-      date_of_birth: user["date_of_birth"],
-      user_type: user["user_type"],
-    },
+    // data: {
+    //   id: user["_id"],
+    //   wallet_key: user["wallet_key"],
+    //   image: user["image"],
+    //   name: user["name"],
+    //   email: user["email"],
+    //   isEmailVerified: user["isEmailVerified"],
+    //   phone: user["phone"],
+    //   isPhoneVerified: user["isPhoneVerified"],
+    //   address: user["address"],
+    //   addressDetails: user["addressDetails"],
+    //   latitude: user["latitude"],
+    //   longitude: user["longitude"],
+    //   date_of_birth: user["date_of_birth"],
+    //   user_type: user["user_type"],
+    // },
   });
 };
 
@@ -478,11 +422,7 @@ exports.updatePassword = async (req, res, next) => {
     return;
   }
 
-  const newPassword = await bcrypt.hash(new_password, 10);
-
-  const user = await userModel
-    .findOneAndUpdate({ email }, { password: newPassword }, { new: false })
-    .select("+password");
+  const user = await userModel.findOne({ email }).select("+password");
 
   if (user == null) {
     res.json({
@@ -492,36 +432,52 @@ exports.updatePassword = async (req, res, next) => {
     return;
   }
 
+  if (!user.isEmailVerified) {
+    sendEmail(
+      req,
+      res,
+      next,
+      "Email not verified, check email for OTP verification."
+    );
+    return;
+  }
+
   const isPasswordMatched = await bcrypt.compare(old_password, user.password);
 
   if (!isPasswordMatched) {
+    if (!isPasswordMatched) {
+      res.json({
+        message: "Incorrect old password.",
+        success: false,
+      });
+      return;
+    }
+  }
+
+  const isNewOldPassworSame = await bcrypt.compare(new_password, user.password);
+  if (isNewOldPassworSame) {
     res.json({
-      message: "Incorrect old password.",
+      message: "Please choose a different password.",
       success: false,
     });
     return;
   }
 
-  res.json({
-    message: "Password updated successfully.",
-    success: true,
-    data: {
-      id: user["_id"],
-      wallet_key: user["wallet_key"],
-      image: user["image"],
-      name: user["name"],
-      email: user["email"],
-      isEmailVerified: user["isEmailVerified"],
-      phone: user["phone"],
-      isPhoneVerified: user["isPhoneVerified"],
-      address: user["address"],
-      addressDetails: user["addressDetails"],
-      latitude: user["latitude"],
-      longitude: user["longitude"],
-      date_of_birth: user["date_of_birth"],
-      user_type: user["user_type"],
-    },
-  });
+  const newPassword = await bcrypt.hash(new_password, 10);
+
+  const verifiedUser = await userModel.updateOne(
+    { email },
+    { password: newPassword },
+    { new: false }
+  );
+
+  if (verifiedUser.modifiedCount > 0) {
+    res.json({
+      message: "Password updated successfully.",
+      success: true,
+    });
+    return;
+  }
 };
 
 //Reset Password
@@ -543,13 +499,7 @@ exports.resetPassword = async (req, res, next) => {
     return;
   }
 
-  const newPassword = await bcrypt.hash(new_password, 10);
-
-  const user = await userModel.findOneAndUpdate(
-    { email },
-    { password: newPassword },
-    { new: false }
-  );
+  const user = await userModel.findOne({ email }).select("+password");
 
   if (user == null) {
     res.json({
@@ -559,10 +509,40 @@ exports.resetPassword = async (req, res, next) => {
     return;
   }
 
-  res.json({
-    message: "Password updated successfully.",
-    success: true,
-  });
+  if (!user.isEmailVerified) {
+    sendEmail(
+      req,
+      res,
+      next,
+      "Email not verified, check email for OTP verification."
+    );
+    return;
+  }
+
+  const isNewOldPassworSame = await bcrypt.compare(new_password, user.password);
+  if (isNewOldPassworSame) {
+    res.json({
+      message: "Please choose a different password.",
+      success: false,
+    });
+    return;
+  }
+
+  const newPassword = await bcrypt.hash(new_password, 10);
+
+  const verifiedUser = await userModel.updateOne(
+    { email },
+    { password: newPassword },
+    { new: false }
+  );
+
+  if (verifiedUser.modifiedCount > 0) {
+    res.json({
+      message: "Password updated successfully.",
+      success: true,
+    });
+    return;
+  }
 };
 
 //Update User
@@ -570,7 +550,6 @@ exports.updateUser = async (req, res, next) => {
   const {
     email,
     wallet_key,
-    // image,
     name,
     address,
     date_of_birth,
@@ -583,7 +562,6 @@ exports.updateUser = async (req, res, next) => {
     {
       email,
       wallet_key,
-      // image,
       name,
       address,
       date_of_birth,
@@ -602,29 +580,7 @@ exports.updateUser = async (req, res, next) => {
     return;
   }
 
-  //   if (req.file.path == null) {
-  //     res.json({
-  //       message: "The image field is required.",
-  //       success: false,
-  //     });
-  //     return;
-  // }
-  // console.log(user);
-
-  const user = await userModel.findOneAndUpdate(
-    { email },
-    {
-      wallet_key: wallet_key,
-      image: req.file.path,
-      name: name,
-      address: address,
-      date_of_birth: date_of_birth,
-      longitude: longitude,
-      latitude: latitude,
-      addressDetails: address_details,
-    },
-    { new: true }
-  );
+  const user = await userModel.findOne({ email });
 
   if (user == null) {
     res.json({
@@ -634,24 +590,97 @@ exports.updateUser = async (req, res, next) => {
     return;
   }
 
+  if (!user.isEmailVerified) {
+    sendEmail(
+      req,
+      res,
+      next,
+      "Email not verified, check email for OTP verification."
+    );
+    return;
+  }
+
+  // const updatedData =
+  //   req.file === undefined
+  //     ? {
+  //         wallet_key: wallet_key,
+  //         name: name,
+  //         address: address,
+  //         date_of_birth: date_of_birth,
+  //         longitude: longitude,
+  //         latitude: latitude,
+  //         addressDetails: address_details,
+  //       }
+  //     : {
+  //         wallet_key: wallet_key,
+  //         image: req.file.path,
+  //         name: name,
+  //         address: address,
+  //         date_of_birth: date_of_birth,
+  //         longitude: longitude,
+  //         latitude: latitude,
+  //         addressDetails: address_details,
+  //       };
+
+  var updatedUser = null;
+
+  if (req.file === undefined) {
+    updatedUser = await userModel.updateOne(
+      { email },
+      {
+        wallet_key: wallet_key,
+        name: name,
+        address: address,
+        date_of_birth: date_of_birth,
+        longitude: longitude,
+        latitude: latitude,
+        addressDetails: address_details,
+      },
+      { new: true }
+    );
+  } else {
+    updatedUser = await userModel.updateOne(
+      { email },
+      {
+        wallet_key: wallet_key,
+        image: req.file.path,
+        name: name,
+        address: address,
+        date_of_birth: date_of_birth,
+        longitude: longitude,
+        latitude: latitude,
+        addressDetails: address_details,
+      },
+      { new: true }
+    );
+    if (user != null) {
+      var filePath = user.image;
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+  }
+
+  const updatedUserData = await userModel.findOne({ email });
+
   res.json({
     message: "User updated successfully.",
     success: true,
     data: {
-      id: user["_id"],
-      wallet_key: user["wallet_key"],
-      image: user["image"],
-      name: user["name"],
-      email: user["email"],
-      isEmailVerified: user["isEmailVerified"],
-      phone: user["phone"],
-      isPhoneVerified: user["isPhoneVerified"],
-      address: user["address"],
-      addressDetails: user["addressDetails"],
-      latitude: user["latitude"],
-      longitude: user["longitude"],
-      date_of_birth: user["date_of_birth"],
-      user_type: user["user_type"],
+      id: updatedUserData["_id"],
+      wallet_key: updatedUserData["wallet_key"],
+      image: updatedUserData["image"],
+      name: updatedUserData["name"],
+      email: updatedUserData["email"],
+      isEmailVerified: updatedUserData["isEmailVerified"],
+      phone: updatedUserData["phone"],
+      isPhoneVerified: updatedUserData["isPhoneVerified"],
+      address: updatedUserData["address"],
+      addressDetails: updatedUserData["addressDetails"],
+      latitude: updatedUserData["latitude"],
+      longitude: updatedUserData["longitude"],
+      date_of_birth: updatedUserData["date_of_birth"],
+      user_type: updatedUserData["user_type"],
     },
   });
 };

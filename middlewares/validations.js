@@ -1,9 +1,23 @@
+exports.registerUserValidation = {
+  wallet_key: "required",
+  name: "required",
+  email: "required|email",
+  phone: "required",
+  address: "required",
+  date_of_birth: "required",
+  password: "required",
+  user_type: "required",
+  longitude: "required",
+  latitude: "required",
+  address_details: "required",
+};
+
 exports.loginValidations = {
   email: "required|email",
   password: "required",
 };
 
-exports.sendOtpValidations = {
+exports.emailValidations = {
   email: "required|email",
 };
 
@@ -18,25 +32,9 @@ exports.resetPasswordValidations = {
   new_password: "required",
 };
 
-exports.registerUserValidation = {
-  wallet_key: "required",
-  // image: "required",
-  name: "required",
-  email: "required|email",
-  phone: "required",
-  address: "required",
-  date_of_birth: "required",
-  password: "required",
-  user_type: "required",
-  longitude: "required",
-  latitude: "required",
-  address_details: "required",
-};
-
 exports.updateUserValidation = {
   email: "required|email",
   wallet_key: "required",
-  // image: "required",
   name: "required",
   address: "required",
   date_of_birth: "required",

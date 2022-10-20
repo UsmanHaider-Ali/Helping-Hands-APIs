@@ -2,8 +2,8 @@ const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
 
-const databaseConnection = require("./apis/databases/database-configuration.js");
-const userRoutes = require("./apis/routes/user-routes");
+const databaseConnection = require("./databases/database-configuration.js");
+const userRoutes = require("./routes/user-routes");
 
 databaseConnection.databaseConnection();
 
@@ -14,6 +14,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/storage/images/profile", express.static("storage/images/profile"));
 
 //User routes
-app.use("/apis/users", userRoutes);
+app.use("/users", userRoutes);
 
 module.exports = app;

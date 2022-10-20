@@ -12,7 +12,7 @@ const userSchema = mongoose.Schema({
   },
   image: {
     type: String,
-    required: true,
+    default: "_",
   },
   name: {
     type: String,
@@ -23,7 +23,6 @@ const userSchema = mongoose.Schema({
     type: String,
     required: true,
     trim: true,
-    // validate: [validator.isEmail, "please enter correct email"],
     lowercase: true,
     unique: true,
   },
@@ -75,7 +74,6 @@ const userSchema = mongoose.Schema({
     type: String,
     required: true,
     trim: true,
-    // minlength: [6, "password should be atleast 6 characters"],
     select: false,
   },
 });
