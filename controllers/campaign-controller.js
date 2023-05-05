@@ -60,7 +60,8 @@ exports.createCampaign = async (req, res, next) => {
     .send({ from: creatorAddress, gas: 4700000 })
     .on("receipt", (contractReceipt) => {
       res.json({
-        data: contractReceipt,
+        contractReceipt: contractReceipt,
+        contractDetail: req.body,
         message: "Contract created successfully.",
         success: true,
       });

@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 contract Campaign {
     address campaignCreator;
-    uint256 userId;
+    string userId;
     string title;
     string description;
     string categoryId;
@@ -18,7 +18,7 @@ contract Campaign {
 
     struct CampaignStructre {
         address creator;
-        uint256 userId;
+        string userId;
         string title;
         string description;
         string categoryId;
@@ -35,7 +35,7 @@ contract Campaign {
     CampaignStructre[] contractsStructList;
 
     constructor(
-        uint256 _userId,
+        string memory _userId,
         string memory _title,
         string memory _description,
         string memory _categoryId,
