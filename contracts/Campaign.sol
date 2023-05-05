@@ -6,7 +6,7 @@ contract Campaign {
     uint256 userId;
     string title;
     string description;
-    uint256 categoryId;
+    string categoryId;
     uint256 targetFunds;
     uint256 startTime;
     uint256 deadline;
@@ -21,7 +21,7 @@ contract Campaign {
         uint256 userId;
         string title;
         string description;
-        uint256 categoryId;
+        string categoryId;
         uint256 targetFunds;
         uint256 startTime;
         uint256 deadline;
@@ -38,7 +38,7 @@ contract Campaign {
         uint256 _userId,
         string memory _title,
         string memory _description,
-        uint256 _categoryId,
+        string memory _categoryId,
         uint256 _targetFunds,
         uint256 _deadline,
         uint256 _startTime
@@ -156,11 +156,9 @@ contract Campaign {
         }
     }
 
-    function getFundsOfContributor(address _address)
-        public
-        view
-        returns (uint256)
-    {
+    function getFundsOfContributor(
+        address _address
+    ) public view returns (uint256) {
         return contributorsList[_address];
     }
 

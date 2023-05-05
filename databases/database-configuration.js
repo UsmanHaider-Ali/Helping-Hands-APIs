@@ -4,6 +4,9 @@ const dotenv = require("dotenv");
 require("dotenv").config();
 dotenv.config();
 
+mongoose.set('strictQuery', false);
+mongoose.set('strictPopulate', false);
+
 exports.databaseConnection = () => {
   try {
     mongoose.connect(process.env.DATABASE_CONNECTION_KEY);

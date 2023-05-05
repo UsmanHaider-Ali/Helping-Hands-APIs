@@ -66,24 +66,6 @@ exports.createCampaign = async (req, res, next) => {
       });
       return;
     });
-  // .then((campaign) => {
-  // campaign.methods
-  //   .sendFunds()
-  //   .send({
-  //     from: "0x371C2E9F7c698bF1148738188069935364a8389C",
-  //     gas: 3000000,
-  //     value: 100,
-  //   })
-  //   .on("receipt", function (data, error) {
-  //     campaign.methods.getRaisedFunds().call((err, data) => {
-  // res.json({
-  //   message: campaign,
-  //   success: true,
-  // });
-  // return;
-  //     });
-  //   });
-  // });
 };
 
 exports.sendFunds = async (req, res, next) => {

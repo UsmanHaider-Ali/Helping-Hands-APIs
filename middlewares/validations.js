@@ -17,6 +17,21 @@ exports.loginValidations = {
   password: "required",
 };
 
+exports.nameValidation = {
+  name: "required",
+};
+
+exports.questionValidation = {
+  question: "required",
+  userId: "required",
+  categoryId: "required",
+};
+exports.answerValidation = {
+  answer: "required",
+  userId: "required",
+  questionId: "required",
+};
+
 exports.emailValidations = {
   email: "required|email",
 };
