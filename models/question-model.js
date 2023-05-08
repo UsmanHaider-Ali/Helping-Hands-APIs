@@ -5,12 +5,12 @@ const questionSchema = mongoose.Schema({
     type: mongoose.Types.ObjectId,
   },
   userId: {
-    type: String,
+    type: mongoose.Schema.ObjectId,
     required: true,
     trim: true,
   },
   categoryId: {
-    type: String,
+    type: mongoose.Schema.ObjectId,
     required: true,
     trim: true,
   },
@@ -18,10 +18,6 @@ const questionSchema = mongoose.Schema({
     type: String,
     required: true,
     trim: true,
-  },
-  answers: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "answers",
   },
 });
 

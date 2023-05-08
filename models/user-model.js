@@ -46,11 +46,6 @@ const userSchema = mongoose.Schema({
     required: true,
     trim: true,
   },
-  addressDetails: {
-    type: String,
-    required: true,
-    trim: true,
-  },
   latitude: {
     type: String,
     required: true,
@@ -68,7 +63,7 @@ const userSchema = mongoose.Schema({
   user_type: {
     type: String,
     required: true,
-    enum: ["_", "Invester", "Entrepreneur", "Charity-Organization"],
+    enum: ["_", "Invester", "Entrepreneur", "Charity Organization"],
   },
   password: {
     type: String,

@@ -55,7 +55,7 @@ exports.createQuestion = async (req, res, next) => {
 
 //Get All Questions
 exports.getAllQuestions = async (req, res, next) => {
-  const questions = await questionModel.find().populate("answers");
+  const questions = await questionModel.find();
 
   res.send({
     message: "Questions fetched successfully.",
@@ -159,4 +159,56 @@ exports.deleteQuestion = async (req, res, next) => {
       success: false,
     });
   }
+};
+
+//Update Question
+exports.updateQuestion = async (req, res, next) => {
+  const { questionId, updatedQuestion } = req.body;
+
+  if (questionId == null || questionId == "") {
+    res.send({
+      message: "QuestionId can't be empty.",
+      success: false,
+    });
+    return;
+  }
+
+  if (updatedQuestion == null || updatedQuestion == "") {
+    res.send({
+      message: "Question can't be empty.",
+      success: false,
+    });
+    return;
+  }
+  var _id = questionId;
+  const question = await questionModel.findById({ _id });
+
+  if (question == null) {
+    res.json({
+      message: "Question not found.",
+      success: false,
+    });
+    return;
+  }
+
+  var updatedQuest = await questionModel.updateOne(
+    { _id },
+    {
+      question: updatedQuestion,
+    },
+    { new: true }
+  );
+
+  updatedQuest = await questionModel.findOne({ _id });
+
+  res.json({
+    message: "Question updated successfully.",
+    success: true,
+    data: {
+      _id: updatedQuest["_id"],
+      userId: updatedQuest["userId"],
+      categoryId: updatedQuest["categoryId"],
+      question: updatedQuest["question"],
+    },
+  });
 };

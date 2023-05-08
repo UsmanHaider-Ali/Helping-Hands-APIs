@@ -10,5 +10,6 @@ routes.post("/get-questions-by-category", questionController.getQuestionByCatego
 routes.post("/get-questions-by-user", questionController.getQuestionByUser);
 routes.post("/get-questions-by-id", questionController.getQuestionById);
 routes.delete("/delete-question", questionController.deleteQuestion);
+routes.put("/update-question", questionController.updateQuestion);
 
 module.exports = routes;

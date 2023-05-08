@@ -30,7 +30,6 @@ exports.registerUser = async (req, res, next) => {
     user_type,
     longitude,
     latitude,
-    address_details,
   } = req.body;
 
   const validation = new Validator(
@@ -45,7 +44,6 @@ exports.registerUser = async (req, res, next) => {
       user_type,
       longitude,
       latitude,
-      address_details,
     },
     validationRules.registerUserValidation
   );
@@ -96,7 +94,6 @@ exports.registerUser = async (req, res, next) => {
     phone: phone,
     isPhoneVerified: false,
     address: address,
-    addressDetails: address_details,
     latitude: latitude,
     longitude: longitude,
     date_of_birth: date_of_birth,
@@ -180,7 +177,8 @@ exports.loginUser = async (req, res, next) => {
     res.json({
       message: "User login successfully.",
       success: true,
-      data: {
+      token: newToken,
+      user: {
         id: user["_id"],
         wallet_key: user["wallet_key"],
         image: user["image"],
@@ -190,12 +188,10 @@ exports.loginUser = async (req, res, next) => {
         phone: user["phone"],
         isPhoneVerified: user["isPhoneVerified"],
         address: user["address"],
-        addressDetails: user["addressDetails"],
         latitude: user["latitude"],
         longitude: user["longitude"],
         date_of_birth: user["date_of_birth"],
         user_type: user["user_type"],
-        token: newToken,
       },
     });
     return;
@@ -279,7 +275,6 @@ exports.socialLogin = async (req, res, next) => {
     phone: "_",
     isPhoneVerified: false,
     address: "_",
-    addressDetails: "_",
     latitude: "_",
     longitude: "_",
     date_of_birth: "_",
@@ -396,7 +391,6 @@ exports.verifyEmail = async (req, res, next) => {
     //   phone: user["phone"],
     //   isPhoneVerified: user["isPhoneVerified"],
     //   address: user["address"],
-    //   addressDetails: user["addressDetails"],
     //   latitude: user["latitude"],
     //   longitude: user["longitude"],
     //   date_of_birth: user["date_of_birth"],
@@ -609,7 +603,6 @@ exports.updateUser = async (req, res, next) => {
   //         date_of_birth: date_of_birth,
   //         longitude: longitude,
   //         latitude: latitude,
-  //         addressDetails: address_details,
   //       }
   //     : {
   //         wallet_key: wallet_key,
@@ -619,7 +612,6 @@ exports.updateUser = async (req, res, next) => {
   //         date_of_birth: date_of_birth,
   //         longitude: longitude,
   //         latitude: latitude,
-  //         addressDetails: address_details,
   //       };
 
   var updatedUser = null;
@@ -634,7 +626,6 @@ exports.updateUser = async (req, res, next) => {
         date_of_birth: date_of_birth,
         longitude: longitude,
         latitude: latitude,
-        addressDetails: address_details,
       },
       { new: true }
     );
@@ -649,7 +640,6 @@ exports.updateUser = async (req, res, next) => {
         date_of_birth: date_of_birth,
         longitude: longitude,
         latitude: latitude,
-        addressDetails: address_details,
       },
       { new: true }
     );
@@ -667,7 +657,7 @@ exports.updateUser = async (req, res, next) => {
     message: "User updated successfully.",
     success: true,
     data: {
-      id: updatedUserData["_id"],
+      _id: updatedUserData["_id"],
       wallet_key: updatedUserData["wallet_key"],
       image: updatedUserData["image"],
       name: updatedUserData["name"],
@@ -676,7 +666,6 @@ exports.updateUser = async (req, res, next) => {
       phone: updatedUserData["phone"],
       isPhoneVerified: updatedUserData["isPhoneVerified"],
       address: updatedUserData["address"],
-      addressDetails: updatedUserData["addressDetails"],
       latitude: updatedUserData["latitude"],
       longitude: updatedUserData["longitude"],
       date_of_birth: updatedUserData["date_of_birth"],

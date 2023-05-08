@@ -9,7 +9,6 @@ exports.registerUserValidation = {
   user_type: "required",
   longitude: "required",
   latitude: "required",
-  address_details: "required",
 };
 
 exports.loginValidations = {

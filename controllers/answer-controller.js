@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const validationRules = require("../middlewares/validations.js");
 
 const answerModel = require("../models/answer-model.js");
+const questionModel = require("../models/question-model.js");
 
 //Create Answer
 exports.createAnswer = async (req, res, next) => {
@@ -34,7 +35,6 @@ exports.createAnswer = async (req, res, next) => {
     answer: answer,
     userId: userId,
     questionId: questionId,
-    question: questionId,
   });
 
   const result = await newAnswer.save();
@@ -46,7 +46,6 @@ exports.createAnswer = async (req, res, next) => {
     });
     return;
   }
-
   res.send({
     message: "Answer created successfully.",
     success: true,
@@ -100,4 +99,56 @@ exports.deleteAnswer = async (req, res, next) => {
       success: false,
     });
   }
+};
+
+//Update Answer
+exports.updateAnswer = async (req, res, next) => {
+  const { answerId, updatedAnswer } = req.body;
+
+  if (answerId == null || answerId == "") {
+    res.send({
+      message: "AnswerId can't be empty.",
+      success: false,
+    });
+    return;
+  }
+
+  if (updatedAnswer == null || updatedAnswer == "") {
+    res.send({
+      message: "Answer can't be empty.",
+      success: false,
+    });
+    return;
+  }
+  var _id = answerId;
+  const answer = await answerModel.findById({ _id });
+
+  if (answer == null) {
+    res.json({
+      message: "Answer not found.",
+      success: false,
+    });
+    return;
+  }
+
+  var updatedAns = await answerModel.updateOne(
+    { _id },
+    {
+      answer: updatedAnswer,
+    },
+    { new: true }
+  );
+
+  updatedAns = await answerModel.findOne({ _id });
+
+  res.json({
+    message: "Answer updated successfully.",
+    success: true,
+    data: {
+      _id: updatedAns["_id"],
+      userId: updatedAns["userId"],
+      questionId: updatedAns["questionId"],
+      answer: updatedAns["answer"],
+    },
+  });
 };

@@ -6,10 +6,11 @@ const cors = require("cors");
 const databaseConnection = require("./databases/database-configuration.js");
 
 const userRoutes = require("./routes/user-routes");
-const campaignRoutes = require("./routes/campaign-routes.js");
 const categoryRoutes = require("./routes/category-routes.js");
 const questionRoutes = require("./routes/question-routes.js");
 const answerRoutes = require("./routes/answer-routes.js");
+const campaignRoutes = require("./routes/campaign-routes.js");
+
 
 databaseConnection.databaseConnection();
 
