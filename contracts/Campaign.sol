@@ -12,6 +12,7 @@ contract Campaign {
     uint256 deadline;
     uint256 raisedFunds;
     uint256 noOfContributors;
+    
     mapping(address => uint256) contributorsList;
 
     bool isWithdrawOnce;
@@ -34,7 +35,7 @@ contract Campaign {
 
     CampaignStructre[] contractsStructList;
 
-    constructor(
+    function createCampaign(
         string memory _userId,
         string memory _title,
         string memory _description,
@@ -42,7 +43,7 @@ contract Campaign {
         uint256 _targetFunds,
         uint256 _deadline,
         uint256 _startTime
-    ) {
+    ) public {
         userId = _userId;
         title = _title;
         description = _description;
@@ -83,6 +84,23 @@ contract Campaign {
         returns (CampaignStructre memory)
     {
         return contractsMapList[address(this)];
+    }
+
+    function getCampaignsCount() public view returns (uint256) {
+        return contractsStructList.length;
+    }
+
+    function getCampaign(
+        uint256 _index
+    ) public view returns (string memory, string memory, uint256, uint256) {
+        require(_index < contractsStructList.length, "Index out of bounds");
+        CampaignStructre memory campaign = contractsStructList[_index];
+        return (
+            campaign.title,
+            campaign.description,
+            campaign.targetFunds,
+            campaign.deadline
+        );
     }
 
     function getAllContracts() public view returns (CampaignStructre[] memory) {

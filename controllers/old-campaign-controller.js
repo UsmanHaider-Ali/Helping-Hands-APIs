@@ -22,17 +22,8 @@ var contractInput = {
 
 var contractOutput = JSON.parse(solc.compile(JSON.stringify(contractInput)));
 
-exports.createCampaign = async (req, res, next) => {
-  const {
-    userId,
-    creatorAddress,
-    title,
-    description,
-    categoryId,
-    startTime,
-    deadline,
-    targetAmount,
-  } = req.body;
+exports.deployeContract = async (req, res, next) => {
+  const { creatorAddress } = req.body;
 
   var contractAbi =
     contractOutput.contracts["contracts/Campaign.sol"]["Campaign"].abi;
@@ -42,30 +33,67 @@ exports.createCampaign = async (req, res, next) => {
 
   var campaignContract = new web3.eth.Contract(contractAbi);
 
-  var contractArgs = [
+  await campaignContract
+    .deploy({
+      data: contractByteCode,
+      arguments: [],
+    })
+    .send({ from: creatorAddress, gas: 4700000 })
+    .on("receipt", (contractReceipt) => {
+      contract = contractReceipt;
+      res.json({
+        contract: contractReceipt,
+        message: "Contract deployed successfully.",
+        success: true,
+      });
+      return;
+    });
+};
+
+exports.createCampaign = async (req, res, next) => {
+  const {
     userId,
     title,
     description,
     categoryId,
-    targetAmount,
     startTime,
     deadline,
-  ];
+    targetAmount,
+    creatorAddress,
+    contractAddress,
+  } = req.body;
 
-  campaignContract
-    .deploy({
-      data: contractByteCode,
-      arguments: contractArgs,
-    })
-    .send({ from: creatorAddress, gas: 4700000 })
-    .on("receipt", (contractReceipt) => {
-      res.json({
-        contractReceipt: contractReceipt,
-        contractDetail: req.body,
-        message: "Contract created successfully.",
-        success: true,
-      });
-      return;
+  var contractAbi =
+    contractOutput.contracts["contracts/Campaign.sol"]["Campaign"].abi;
+
+  const contract = new web3.eth.Contract(contractAbi, contractAddress);
+
+  contract.methods
+    .createCampaign(
+      userId,
+      title,
+      description,
+      categoryId,
+      targetAmount,
+      deadline,
+      startTime
+    )
+    .send({ from: creatorAddress, gas: 2000000 },(error, txHash) => {
+      if (error) {
+        res.json({
+          data: error,
+          message: "Error while creating campaign.",
+          success: false,
+        });
+        return;
+      } else {
+        res.json({
+          data: txHash,
+          message: "Campaign created successfully.",
+          success: true,
+        });
+        return;
+      }
     });
 };
 
@@ -288,6 +316,54 @@ exports.getAllContracts = async (req, res, next) => {
     res.json({
       data: await contract.methods.getAllContracts().call(),
       message: "All Contracts fetched successfully.",
+      success: true,
+    });
+    return;
+  } catch (err) {
+    res.json({
+      message: "" + err,
+      success: false,
+    });
+    return;
+  }
+};
+
+exports.getCompaignsCount = async (req, res, next) => {
+  const { contractAddress } = req.body;
+
+  var contractAbi =
+    contractOutput.contracts["contracts/Campaign.sol"]["Campaign"].abi;
+
+  try {
+    const contract = new web3.eth.Contract(contractAbi, contractAddress);
+
+    res.json({
+      data: await contract.methods.getCampaignsCount().call(),
+      message: "Compaign count fetched successfully.",
+      success: true,
+    });
+    return;
+  } catch (err) {
+    res.json({
+      message: "" + err,
+      success: false,
+    });
+    return;
+  }
+};
+
+exports.getOneCampaignDetail = async (req, res, next) => {
+  const { contractAddress } = req.body;
+
+  var contractAbi =
+    contractOutput.contracts["contracts/Campaign.sol"]["Campaign"].abi;
+
+  try {
+    const contract = new web3.eth.Contract(contractAbi, contractAddress);
+
+    res.json({
+      data: await contract.methods.getCampaign(1).call(),
+      message: "Campaign detail fetched successfully.",
       success: true,
     });
     return;
