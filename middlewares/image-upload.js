@@ -2,7 +2,7 @@ const multer = require("multer");
 
 const imageStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "./storage/images/profile/");
+    cb(null, "./storage/images/");
   },
   filename: (req, file, cb) => {
     cb(null, new Date().toISOString() + file.originalname.replace(/\s/g, "_"));

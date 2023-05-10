@@ -25,6 +25,13 @@ exports.questionValidation = {
   userId: "required",
   categoryId: "required",
 };
+
+exports.storyValidation = {
+  userId: "required",
+  categoryId: "required",
+  title: "required",
+  description: "required",
+};
 exports.answerValidation = {
   answer: "required",
   userId: "required",
