@@ -5,8 +5,15 @@ const validationRules = require("../middlewares/validations.js");
 
 const questionModel = require("../models/question-model.js");
 
-//Create Question
 exports.createQuestion = async (req, res, next) => {
+  var imagePath = "";
+
+  if (req.file === undefined) {
+    imagePath = "_";
+  } else {
+    imagePath = req.file.path;
+  }
+
   const { question, userId, categoryId } = req.body;
 
   const validation = new Validator(
@@ -34,6 +41,7 @@ exports.createQuestion = async (req, res, next) => {
     question: question,
     userId: userId,
     categoryId: categoryId,
+    image: imagePath,
   });
 
   const result = await newQuestion.save();
@@ -49,22 +57,20 @@ exports.createQuestion = async (req, res, next) => {
   res.send({
     message: "question created successfully.",
     success: true,
-    data: result,
+    question: result,
   });
 };
 
-//Get All Questions
 exports.getAllQuestions = async (req, res, next) => {
   const questions = await questionModel.find();
 
   res.send({
     message: "Questions fetched successfully.",
     success: true,
-    data: questions,
+    questions: questions,
   });
 };
 
-//Get Questions By Category
 exports.getQuestionByCategory = async (req, res, next) => {
   const { categoryId } = req.body;
 
@@ -81,11 +87,10 @@ exports.getQuestionByCategory = async (req, res, next) => {
   res.send({
     message: "Questions fetched successfully.",
     success: true,
-    data: questions,
+    questions: questions,
   });
 };
 
-//Get Questions By User
 exports.getQuestionByUser = async (req, res, next) => {
   const { userId } = req.body;
 
@@ -102,11 +107,10 @@ exports.getQuestionByUser = async (req, res, next) => {
   res.send({
     message: "Questions fetched successfully.",
     success: true,
-    data: questions,
+    questions: questions,
   });
 };
 
-//Get Questions By Id
 exports.getQuestionById = async (req, res, next) => {
   const { _id } = req.body;
 
@@ -124,7 +128,7 @@ exports.getQuestionById = async (req, res, next) => {
     res.send({
       message: "Question fetched successfully.",
       success: true,
-      data: question,
+      question: question,
     });
   } else {
     res.send({
@@ -134,7 +138,6 @@ exports.getQuestionById = async (req, res, next) => {
   }
 };
 
-//Delete Question
 exports.deleteQuestion = async (req, res, next) => {
   const { _id } = req.body;
 
@@ -161,7 +164,6 @@ exports.deleteQuestion = async (req, res, next) => {
   }
 };
 
-//Update Question
 exports.updateQuestion = async (req, res, next) => {
   const { questionId, updatedQuestion } = req.body;
 
@@ -191,10 +193,18 @@ exports.updateQuestion = async (req, res, next) => {
     return;
   }
 
+  var imagePath = question.image;
+
+  if (req.file === undefined) {
+  } else {
+    imagePath = req.file.path;
+  }
+
   var updatedQuest = await questionModel.updateOne(
     { _id },
     {
       question: updatedQuestion,
+      image: imagePath,
     },
     { new: true }
   );
@@ -204,11 +214,12 @@ exports.updateQuestion = async (req, res, next) => {
   res.json({
     message: "Question updated successfully.",
     success: true,
-    data: {
+    question: {
       _id: updatedQuest["_id"],
       userId: updatedQuest["userId"],
       categoryId: updatedQuest["categoryId"],
       question: updatedQuest["question"],
+      image: updatedQuest["image"],
     },
   });
 };

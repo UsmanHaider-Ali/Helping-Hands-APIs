@@ -9,7 +9,6 @@ const userModel = require("../models/user-model.js");
 const validationRules = require("../middlewares/validations.js");
 const sendEmail = require("../middlewares/send-mail.js");
 
-//User Registration Controller
 exports.registerUser = async (req, res, next) => {
   var imagePath = "";
 
@@ -123,7 +122,6 @@ exports.registerUser = async (req, res, next) => {
   );
 };
 
-//User Login Controller
 exports.loginUser = async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -205,7 +203,6 @@ exports.loginUser = async (req, res, next) => {
   );
 };
 
-//Social Login Controller
 exports.socialLogin = async (req, res, next) => {
   const {
     // wallet_key,
@@ -323,7 +320,6 @@ exports.socialLogin = async (req, res, next) => {
   });
 };
 
-//Send OTP
 exports.sendOpt = async (req, res, next) => {
   const { email } = req.body;
 
@@ -350,7 +346,6 @@ exports.sendOpt = async (req, res, next) => {
   sendEmail(req, res, next, "Check email for OTP verification.");
 };
 
-//Verify Email
 exports.verifyEmail = async (req, res, next) => {
   const { email } = req.body;
 
@@ -399,7 +394,6 @@ exports.verifyEmail = async (req, res, next) => {
   });
 };
 
-//Update Password
 exports.updatePassword = async (req, res, next) => {
   const { email, old_password, new_password } = req.body;
 
@@ -474,7 +468,6 @@ exports.updatePassword = async (req, res, next) => {
   }
 };
 
-//Reset Password
 exports.resetPassword = async (req, res, next) => {
   const { email, new_password } = req.body;
 
@@ -539,7 +532,6 @@ exports.resetPassword = async (req, res, next) => {
   }
 };
 
-//Update User
 exports.updateUser = async (req, res, next) => {
   const {
     email,

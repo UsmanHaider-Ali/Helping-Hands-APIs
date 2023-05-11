@@ -19,6 +19,11 @@ const questionSchema = mongoose.Schema({
     required: true,
     trim: true,
   },
+  image: {
+    type: String,
+    required: true,
+    trim: true,
+  },
 });
 
 const questionModel = mongoose.model("questions", questionSchema);

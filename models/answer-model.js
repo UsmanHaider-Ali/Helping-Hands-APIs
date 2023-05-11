@@ -19,6 +19,11 @@ const answerSchema = mongoose.Schema({
     required: true,
     trim: true,
   },
+  image: {
+    type: String,
+    required: true,
+    trim: true,
+  },
 });
 
 const answerModel = mongoose.model("answers", answerSchema);

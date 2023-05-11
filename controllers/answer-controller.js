@@ -4,10 +4,15 @@ const mongoose = require("mongoose");
 const validationRules = require("../middlewares/validations.js");
 
 const answerModel = require("../models/answer-model.js");
-const questionModel = require("../models/question-model.js");
 
-//Create Answer
 exports.createAnswer = async (req, res, next) => {
+  var imagePath = "";
+
+  if (req.file === undefined) {
+    imagePath = "_";
+  } else {
+    imagePath = req.file.path;
+  }
   const { answer, userId, questionId } = req.body;
 
   const validation = new Validator(
@@ -35,6 +40,7 @@ exports.createAnswer = async (req, res, next) => {
     answer: answer,
     userId: userId,
     questionId: questionId,
+    image: imagePath,
   });
 
   const result = await newAnswer.save();
@@ -49,11 +55,10 @@ exports.createAnswer = async (req, res, next) => {
   res.send({
     message: "Answer created successfully.",
     success: true,
-    data: result,
+    answer: result,
   });
 };
 
-//Get Answers By Question
 exports.getAnswerByQuestion = async (req, res, next) => {
   const { questionId } = req.body;
 
@@ -70,11 +75,10 @@ exports.getAnswerByQuestion = async (req, res, next) => {
   res.send({
     message: "Answers fetched successfully.",
     success: true,
-    data: answers,
+    answers: answers,
   });
 };
 
-//Delete Answer
 exports.deleteAnswer = async (req, res, next) => {
   const { _id } = req.body;
 
@@ -101,7 +105,6 @@ exports.deleteAnswer = async (req, res, next) => {
   }
 };
 
-//Update Answer
 exports.updateAnswer = async (req, res, next) => {
   const { answerId, updatedAnswer } = req.body;
 
@@ -131,10 +134,18 @@ exports.updateAnswer = async (req, res, next) => {
     return;
   }
 
+  var imagePath = answer.image;
+
+  if (req.file === undefined) {
+  } else {
+    imagePath = req.file.path;
+  }
+
   var updatedAns = await answerModel.updateOne(
     { _id },
     {
       answer: updatedAnswer,
+      image: imagePath,
     },
     { new: true }
   );
@@ -144,11 +155,12 @@ exports.updateAnswer = async (req, res, next) => {
   res.json({
     message: "Answer updated successfully.",
     success: true,
-    data: {
+    answer: {
       _id: updatedAns["_id"],
       userId: updatedAns["userId"],
       questionId: updatedAns["questionId"],
       answer: updatedAns["answer"],
+      image: updatedAns["image"],
     },
   });
 };

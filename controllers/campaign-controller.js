@@ -22,7 +22,7 @@ var contractInput = {
 
 var contractOutput = JSON.parse(solc.compile(JSON.stringify(contractInput)));
 
-exports.deployeContract = async (req, res, next) => {
+exports.deployeCampaignContract = async (req, res, next) => {
   const { creatorAddress } = req.body;
 
   var contractAbi =
@@ -41,7 +41,7 @@ exports.deployeContract = async (req, res, next) => {
     .send({ from: creatorAddress, gas: 4700000 })
     .on("receipt", (contractReceipt) => {
       fs.writeFileSync(
-        "build/contracts/contract-address.json",
+        "build/addresses/campaign-contract-address.json",
         JSON.stringify({ address: contractReceipt.contractAddress }, null, 2)
       );
 
@@ -56,7 +56,7 @@ exports.deployeContract = async (req, res, next) => {
 
 const getCampaignContract = async () => {
   const contractAddress = JSON.parse(
-    fs.readFileSync("build/contracts/contract-address.json")
+    fs.readFileSync("build/addresses/campaign-contract-address.json")
   );
 
   var contractAbi =

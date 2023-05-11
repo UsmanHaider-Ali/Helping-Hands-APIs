@@ -4,7 +4,10 @@ const uploadImage = require("../middlewares/image-upload.js");
 
 const campaignController = require("../controllers/campaign-controller.js");
 
-routes.post("/deploy-contract", campaignController.deployeContract);
+routes.post(
+  "/deploy-campaign-contract",
+  campaignController.deployeCampaignContract
+);
 routes.post(
   "/create-campaign",
   uploadImage.single("imageUrl"),

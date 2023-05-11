@@ -5,7 +5,6 @@ const validationRules = require("../middlewares/validations.js");
 
 const categoryModel = require("../models/category-model.js");
 
-//Create Category
 exports.createCategory = async (req, res, next) => {
   const { name } = req.body;
 
@@ -51,7 +50,6 @@ exports.createCategory = async (req, res, next) => {
   });
 };
 
-//Get All Categories
 exports.getAllCategories = async (req, res, next) => {
   const category = await categoryModel.find();
 
@@ -62,7 +60,6 @@ exports.getAllCategories = async (req, res, next) => {
   });
 };
 
-//Delete Category
 exports.deleteCategory = async (req, res, next) => {
   const { _id } = req.body;
 
