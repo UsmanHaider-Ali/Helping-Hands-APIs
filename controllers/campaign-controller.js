@@ -2,6 +2,8 @@ var web3 = require("../provider.js");
 var solc = require("solc");
 var fs = require("fs");
 
+const gasLimit = 2100000;
+
 var campaignContractFile = fs.readFileSync("contracts/Campaign.sol").toString();
 
 var contractInput = {
@@ -38,7 +40,7 @@ exports.deployeCampaignContract = async (req, res, next) => {
       data: contractByteCode,
       arguments: [],
     })
-    .send({ from: creatorAddress, gas: 4700000 })
+    .send({ from: creatorAddress, gas: gasLimit })
     .on("receipt", (contractReceipt) => {
       fs.writeFileSync(
         "build/addresses/campaign-contract-address.json",
@@ -100,7 +102,7 @@ exports.createCampaign = async (req, res, next) => {
       deadline,
       imageUrl
     )
-    .send({ from: creator, gas: 2000000 }, (error, transaction) => {
+    .send({ from: creator, gas: gasLimit }, (error, transaction) => {
       if (error) {
         res.json({
           error,
@@ -120,18 +122,18 @@ exports.createCampaign = async (req, res, next) => {
 };
 
 exports.donateFunds = async (req, res, next) => {
-  const { id, userAddress, amount } = req.body;
+  const { userAddress, amount, campaignId, userId } = req.body;
 
   try {
     const contract = await getCampaignContract();
     res.json({
-      result: await contract.methods.donateFunds(id).send({
-        from: userAddress,
-        value: amount,
-        gas: 4700000,
-      }),
       message: "Funds donated successfully.",
       success: true,
+      result: await contract.methods.donateFunds(campaignId, userId).send({
+        from: userAddress,
+        value: amount,
+        gas: gasLimit,
+      }),
     });
     return;
   } catch (err) {
@@ -144,25 +146,28 @@ exports.donateFunds = async (req, res, next) => {
 };
 
 exports.withdrawFunds = async (req, res, next) => {
-  const { id, ownerAddress } = req.body;
+  const { ownerAddress, campaignId, userId } = req.body;
 
   try {
     const contract = await getCampaignContract();
 
     const result = await contract.methods
-      .withdrawFunds(ownerAddress, id)
-      .call();
+      .withdrawFunds(ownerAddress, campaignId, userId)
+      .send({
+        from: ownerAddress,
+        gas: gasLimit,
+      });
 
     res.json({
-      result: `${result}`,
       message: "Funds withdraw successfully.",
       success: true,
+      result: result,
     });
     return;
   } catch (err) {
     res.json({
-      message: "" + err,
       success: false,
+      message: "" + err,
     });
     return;
   }
@@ -173,33 +178,33 @@ exports.getCampaign = async (req, res, next) => {
 
   try {
     const contract = await getCampaignContract();
-    let rawCamp = await contract.methods.getCampaign(id).call();
+    let result = await contract.methods.getCampaign(id).call();
 
     let campaign = {
-      creator: rawCamp[0],
-      userId: rawCamp[1],
-      categoryId: rawCamp[2],
-      campaignId: rawCamp[3],
-      title: rawCamp[4],
-      description: rawCamp[5],
-      targetFunds: rawCamp[6],
-      deadline: rawCamp[7],
-      raisedFunds: rawCamp[8],
-      remainingFunds: rawCamp[9],
-      imageUrl: rawCamp[10],
-      isOpened: rawCamp[11],
+      creator: result[0],
+      userId: result[1],
+      categoryId: result[2],
+      campaignId: result[3],
+      title: result[4],
+      description: result[5],
+      targetFunds: result[6],
+      deadline: result[7],
+      raisedFunds: result[8],
+      remainingFunds: result[9],
+      imageUrl: result[10],
+      status: result[11] == 0 ? "Ongoing" : "Completed",
     };
 
     res.json({
-      campaign: campaign,
       message: "Campaign fetched successfully.",
       success: true,
+      campaign: campaign,
     });
     return;
   } catch (err) {
     res.json({
-      message: `${err}`,
       success: false,
+      message: `${err}`,
     });
     return;
   }
@@ -226,21 +231,21 @@ exports.getAllCampaigns = async (req, res, next) => {
         raisedFunds: result[i][8],
         remainingFunds: result[i][9],
         imageUrl: result[i][10],
-        isOpened: result[i][11],
+        status: result[i][11] == 0 ? "Ongoing" : "Completed",
       };
       campaigns.push(campaign);
     }
 
     res.json({
-      campaigns: campaigns,
       message: "Campaigns fetched successfully.",
       success: true,
+      campaigns: campaigns,
     });
     return;
   } catch (err) {
     res.json({
-      error: `${err}`,
       success: false,
+      error: `${err}`,
     });
     return;
   }
@@ -269,22 +274,55 @@ exports.getMyCampaigns = async (req, res, next) => {
         raisedFunds: result[i][8],
         remainingFunds: result[i][9],
         imageUrl: result[i][10],
-        isOpened: result[i][11],
+        status: result[i][11] == 0 ? "Ongoing" : "Completed",
       };
       if (campaign.userId == id && campaign.creator == creator)
         campaigns.push(campaign);
     }
 
     res.json({
-      campaigns: campaigns,
       message: "Campaigns fetched successfully.",
       success: true,
+      campaigns: campaigns,
     });
     return;
   } catch (err) {
     res.json({
-      error: `${err}`,
       success: false,
+      error: `${err}`,
+    });
+    return;
+  }
+};
+
+exports.getCampaignFunders = async (req, res, next) => {
+  const id = req.body.id;
+  try {
+    const contract = await getCampaignContract();
+
+    var result = await contract.methods.getCampaignFunders(id).call();
+
+    let funders = [];
+
+    for (let i = 0; i < result.length; i++) {
+      let funder = {
+        funder: result[i][0],
+        contribution: result[i][1],
+        timestamp: result[i][2],
+      };
+      funders.push(funder);
+    }
+
+    res.json({
+      message: "Funders fetched successfully.",
+      success: true,
+      funders: funders,
+    });
+    return;
+  } catch (err) {
+    res.json({
+      success: false,
+      error: `${err}`,
     });
     return;
   }
@@ -312,21 +350,22 @@ exports.getAllCampaignsByCategory = async (req, res, next) => {
         raisedFunds: result[i][8],
         remainingFunds: result[i][9],
         imageUrl: result[i][10],
-        isOpened: result[i][11],
+        status: result[i][11] == 0 ? "Ongoing" : "Completed",
       };
-      if (campaign.campaignId == id) campaigns.push(campaign);
+
+      if (campaign.categoryId == id) campaigns.push(campaign);
     }
 
     res.json({
-      campaigns: campaigns,
       message: "Campaigns fetched successfully.",
       success: true,
+      campaigns: campaigns,
     });
     return;
   } catch (err) {
     res.json({
-      error: `${err}`,
       success: false,
+      error: `${err}`,
     });
     return;
   }
@@ -356,7 +395,7 @@ exports.getMyCampaignsByCategory = async (req, res, next) => {
         raisedFunds: result[i][8],
         remainingFunds: result[i][9],
         imageUrl: result[i][10],
-        isOpened: result[i][11],
+        status: result[i][11] == 0 ? "Ongoing" : "Completed",
       };
       if (
         campaign.categoryId == categoryId &&
@@ -367,15 +406,15 @@ exports.getMyCampaignsByCategory = async (req, res, next) => {
     }
 
     res.json({
-      campaigns: campaigns,
       message: "Campaigns fetched successfully.",
       success: true,
+      campaigns: campaigns,
     });
     return;
   } catch (err) {
     res.json({
-      error: `${err}`,
       success: false,
+      error: `${err}`,
     });
     return;
   }

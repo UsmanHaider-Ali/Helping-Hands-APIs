@@ -1,5 +1,6 @@
 const Validator = require("validatorjs");
 const mongoose = require("mongoose");
+const moment = require("moment");
 
 const validationRules = require("../middlewares/validations.js");
 
@@ -35,12 +36,15 @@ exports.createAnswer = async (req, res, next) => {
     return;
   }
 
+  const now = moment().format("HH:mm DD-MM-YYYY ");
+
   const newAnswer = new answerModel({
     _id: new mongoose.Types.ObjectId(),
     answer: answer,
     userId: userId,
     questionId: questionId,
     image: imagePath,
+    timestamp: now,
   });
 
   const result = await newAnswer.save();

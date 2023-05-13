@@ -16,6 +16,7 @@ routes.post(
 routes.post("/send-funds", campaignController.donateFunds);
 routes.post("/withdraw-funds", campaignController.withdrawFunds);
 routes.post("/get-campaign", campaignController.getCampaign);
+routes.post("/get-campaign-funders", campaignController.getCampaignFunders);
 routes.post("/get-all-campaigns", campaignController.getAllCampaigns);
 routes.post("/get-my-campaigns", campaignController.getMyCampaigns);
 routes.post(

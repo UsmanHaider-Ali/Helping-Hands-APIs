@@ -24,6 +24,11 @@ const answerSchema = mongoose.Schema({
     required: true,
     trim: true,
   },
+  timestamp: {
+    type: String,
+    required: true,
+    trim: true,
+  },
 });
 
 const answerModel = mongoose.model("answers", answerSchema);

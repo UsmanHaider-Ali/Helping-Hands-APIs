@@ -1,7 +1,19 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.7;
 
 contract Campaign {
+    enum statusEnum {
+        Ongoing,
+        Completed
+    }
+
+    event Action(
+        uint256 campaignId,
+        string actionType,
+        address indexed executor,
+        uint256 timestamp
+    );
+
     struct funderStruct {
         address funder;
         uint contribution;
@@ -26,17 +38,18 @@ contract Campaign {
         uint256 raisedFunds;
         uint256 remainingFunds;
         string imageURL;
-        bool isOpened;
+        statusEnum status;
     }
 
     address campaignCreator;
-    uint public campaignsCount;
+    uint campaignsCount;
     campaignStructre[] campaigns;
-    statsStruct public stats;
+    userStatsStruct[] userStats;
+    statsStruct stats;
     uint public contractBalance;
 
-    mapping(uint => bool) public campaignExist;
-    mapping(address => campaignStructre) public campaignsOf;
+    mapping(uint => bool) campaignExist;
+    mapping(address => campaignStructre) campaignsOf;
     mapping(uint => funderStruct[]) fundersOf;
 
     function createCampaign(
@@ -47,7 +60,7 @@ contract Campaign {
         uint256 targetFunds,
         uint256 deadline,
         string memory imageURL
-    ) public {
+    ) public returns (bool) {
         campaignCreator = msg.sender;
 
         campaignStructre memory campaign;
@@ -63,64 +76,111 @@ contract Campaign {
         campaign.raisedFunds = 0;
         campaign.remainingFunds = targetFunds;
         campaign.imageURL = imageURL;
-        campaign.isOpened = true;
+        campaign.status = statusEnum.Ongoing;
 
         campaigns.push(campaign);
         campaignExist[campaignsCount] = true;
         campaignsOf[address(this)] = campaign;
         stats.totalCampaigns += 1;
 
-        campaignsCount += 1;
-    }
-
-    function updateCampaign(
-        uint256 campaignId,
-        string memory title,
-        string memory description,
-        string memory imageURL,
-        address creater
-    ) public {
-        require(campaigns[campaignId].isOpened, "Campaign has closed.");
-        require(
-            creater == campaigns[campaignId].creator,
-            "Unauthorized Entity."
+        emit Action(
+            campaignsCount++,
+            "Campaign Created",
+            msg.sender,
+            block.timestamp
         );
-
-        campaigns[campaignId].title = title;
-        campaigns[campaignId].description = description;
-        campaigns[campaignId].imageURL = imageURL;
+        return true;
     }
 
-    function donateFunds(uint id) public payable {
-        require(campaigns[id].isOpened, "Campaign has closed.");
-        require(msg.value > 0 ether, "Ether must be greater than zero.");
-        require(campaignExist[id], "Campaign not found.");
+    function donateFunds(
+        uint campaignId,
+        string memory userId
+    ) public payable returns (bool) {
         require(
-            block.timestamp >= campaigns[id].deadline,
+            campaigns[campaignId].status != statusEnum.Completed,
+            "Campaign has completed."
+        );
+        require(msg.value > 0 ether, "Ether must be greater than zero.");
+        require(campaignExist[campaignId], "Campaign not found.");
+        require(
+            block.timestamp >= campaigns[campaignId].deadline,
             "Deadline has passed."
         );
         require(
-            campaigns[id].raisedFunds <= campaigns[id].targetFunds,
+            campaigns[campaignId].raisedFunds <=
+                campaigns[campaignId].targetFunds,
             "Target funds has raised, you can't donate now."
         );
         require(
-            campaigns[id].raisedFunds + msg.value <= campaigns[id].targetFunds,
+            campaigns[campaignId].raisedFunds + msg.value <=
+                campaigns[campaignId].targetFunds,
             "Can't donate this ammount, please try again."
+        );
+
+        require(
+            !compareStrings(campaigns[campaignId].userId, userId),
+            "Creater can't funds his own campaign."
         );
 
         stats.totalFunding += 1;
         stats.totalDonation += msg.value;
 
-        campaigns[id].raisedFunds += msg.value;
-        campaigns[id].remainingFunds =
-            campaigns[id].targetFunds -
-            campaigns[id].raisedFunds;
+        campaigns[campaignId].raisedFunds += msg.value;
+        campaigns[campaignId].remainingFunds =
+            campaigns[campaignId].targetFunds -
+            campaigns[campaignId].raisedFunds;
 
         contractBalance += msg.value;
 
-        fundersOf[id].push(
+        fundersOf[campaignId].push(
             funderStruct(msg.sender, msg.value, block.timestamp)
         );
+
+        userStats.push(
+            userStatsStruct(
+                userId,
+                msg.value,
+                true,
+                block.timestamp,
+                concatenateStrings(
+                    "Donate funds to campaign titled as ",
+                    campaigns[campaignId].title
+                )
+            )
+        );
+
+        emit Action(
+            campaignId,
+            "Funds Donated for Campaign",
+            msg.sender,
+            block.timestamp
+        );
+        return true;
+    }
+
+    function concatenateStrings(
+        string memory str1,
+        string memory str2
+    ) private pure returns (string memory) {
+        return string(abi.encodePacked(str1, str2));
+    }
+
+    struct userStatsStruct {
+        string userId;
+        uint contribution;
+        bool isFundsDonating;
+        uint timestamp;
+        string description;
+    }
+
+    function getCampaignFunders(
+        uint id
+    ) public view returns (funderStruct[] memory) {
+        return fundersOf[id];
+    }
+
+    function getUserStats() public view returns (userStatsStruct[] memory) {
+        return userStats;
     }
 
     function getCampaign(
@@ -147,23 +207,63 @@ contract Campaign {
         return campaigns[id].remainingFunds;
     }
 
-    function withdrawFunds(address ownerAddress, uint id) public {
-        require(campaigns[id].isOpened, "Campaign has closed.");
+    function withdrawFunds(
+        address ownerAddress,
+        uint campaignId,
+        string memory userId
+    ) public returns (bool) {
         require(
-            ownerAddress == campaignCreator,
-            "Only creater can withdraw funds."
+            campaigns[campaignId].status != statusEnum.Completed,
+            "Campaign has completed."
         );
         require(
-            campaigns[id].raisedFunds > 0,
+            ownerAddress == campaignCreator,
+            "Only creater can withdraw funds, creater address doesn't match."
+        );
+        require(
+            compareStrings(campaigns[campaignId].userId, userId),
+            "Only creater can withdraw funds, userId doesn't match."
+        );
+        require(
+            campaigns[campaignId].raisedFunds > 0,
             "Not enough balance to withdraw."
         );
 
         address payable owner = payable(ownerAddress);
 
-        owner.transfer(campaigns[id].raisedFunds);
+        userStats.push(
+            userStatsStruct(
+                userId,
+                campaigns[campaignId].raisedFunds,
+                false,
+                block.timestamp,
+                concatenateStrings(
+                    "Withdraw funds from campaign titled as ",
+                    campaigns[campaignId].title
+                )
+            )
+        );
 
-        contractBalance -= campaigns[id].raisedFunds;
+        owner.transfer(campaigns[campaignId].raisedFunds);
 
-        campaigns[id].isOpened = false;
+        contractBalance -= campaigns[campaignId].raisedFunds;
+
+        campaigns[campaignId].status = statusEnum.Completed;
+
+        emit Action(
+            campaignId,
+            "Campaign Completed",
+            msg.sender,
+            block.timestamp
+        );
+
+        return true;
+    }
+
+    function compareStrings(
+        string memory a,
+        string memory b
+    ) private pure returns (bool) {
+        return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
     }
 }
