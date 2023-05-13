@@ -22,7 +22,7 @@ var contractInput = {
 
 var contractOutput = JSON.parse(solc.compile(JSON.stringify(contractInput)));
 
-exports.deployeProjectContract = async (req, res, next) => {
+exports.deployContract = async (req, res, next) => {
   const { creatorAddress } = req.body;
 
   var contractAbi =
@@ -38,7 +38,7 @@ exports.deployeProjectContract = async (req, res, next) => {
       data: contractByteCode,
       arguments: [],
     })
-    .send({ from: creatorAddress, gas: 4700000 })
+    .send({ from: creatorAddress, gas: 5425342 })
     .on("receipt", (contractReceipt) => {
       fs.writeFileSync(
         "build/addresses/project-contract-address.json",
@@ -69,11 +69,7 @@ exports.createProject = async (req, res, next) => {
   var imageUrl = "";
 
   if (req.file === undefined) {
-    res.json({
-      message: "Please select the image.",
-      success: false,
-    });
-    return;
+    imageUrl = "_";
   } else {
     imageUrl = req.file.path;
   }
@@ -121,7 +117,7 @@ exports.createProject = async (req, res, next) => {
     });
 };
 
-exports.createProjectModule = async (req, res, next) => {
+exports.createModule = async (req, res, next) => {
   const {
     projectId,
     title,
@@ -163,11 +159,11 @@ exports.createProjectModule = async (req, res, next) => {
 };
 
 exports.getProject = async (req, res, next) => {
-  const { id } = req.body;
+  const { projectId } = req.body;
 
   try {
     const contract = await getProjectContract();
-    let rawPro = await contract.methods.getProject(id).call();
+    let rawPro = await contract.methods.getProject(projectId).call();
 
     let rawMod = await contract.methods.getAllModules().call();
 
@@ -175,6 +171,21 @@ exports.getProject = async (req, res, next) => {
 
     for (let i = 0; i < rawMod.length; i++) {
       if (rawPro[3] == rawMod[i]["projectId"]) {
+        let status = "";
+        if (rawMod[i].status == 0) {
+          status = "NotStarted";
+        } else if (rawMod[i].status == 1) {
+          status = "Ongoing";
+        } else if (rawMod[i].status == 2) {
+          status = "Upcoming";
+        } else if (rawMod[i].status == 3) {
+          status = "Paid";
+        } else if (rawMod[i].status == 4) {
+          status = "Completed";
+        } else if (rawMod[i].status == 5) {
+          status = "Issued";
+        }
+
         modules.push({
           projectId: rawMod[i]["projectId"],
           moduleId: rawMod[i]["moduleId"],
@@ -185,9 +196,10 @@ exports.getProject = async (req, res, next) => {
             raisedFunds: rawMod[i]["moduleFunds"]["raisedFunds"],
             remainingFunds: rawMod[i]["moduleFunds"]["remainingFunds"],
           },
+
           startDate: rawMod[i]["startDate"],
           endDate: rawMod[i]["endDate"],
-          status: rawMod[i]["status"],
+          status: status,
         });
       }
     }
@@ -197,6 +209,21 @@ exports.getProject = async (req, res, next) => {
       raisedFunds: rawPro[6][1],
       remainingFunds: rawPro[6][2],
     };
+
+    let status = "";
+    if (rawPro[11] == 0) {
+      status = "NotStarted";
+    } else if (rawPro[11] == 1) {
+      status = "Ongoing";
+    } else if (rawPro[11] == 2) {
+      status = "Upcoming";
+    } else if (rawPro[11] == 3) {
+      status = "Paid";
+    } else if (rawPro[11] == 4) {
+      status = "Completed";
+    } else if (rawPro[11] == 5) {
+      status = "Issued";
+    }
 
     let project = {
       creator: rawPro[0],
@@ -210,7 +237,7 @@ exports.getProject = async (req, res, next) => {
       modules: modules,
       investerId: rawPro[9],
       investerAddress: rawPro[10],
-      isOpened: rawPro[11],
+      status: status,
     };
 
     res.json({
@@ -228,7 +255,9 @@ exports.getProject = async (req, res, next) => {
   }
 };
 
-exports.getAllProjects = async (req, res, next) => {
+exports.getProjects = async (req, res, next) => {
+  const { userId, categoryId } = req.body;
+
   try {
     const contract = await getProjectContract();
 
@@ -247,6 +276,21 @@ exports.getAllProjects = async (req, res, next) => {
 
       for (let i = 0; i < rawMod.length; i++) {
         if (result[j][3] == rawMod[i]["projectId"]) {
+          let status = "";
+          if (result[j][11] == 0) {
+            status = "NotStarted";
+          } else if (result[j][11] == 1) {
+            status = "Ongoing";
+          } else if (result[j][11] == 2) {
+            status = "Upcoming";
+          } else if (result[j][11] == 3) {
+            status = "Paid";
+          } else if (result[j][11] == 4) {
+            status = "Completed";
+          } else if (result[j][11] == 5) {
+            status = "Issued";
+          }
+
           modules.push({
             projectId: rawMod[i]["projectId"],
             moduleId: rawMod[i]["moduleId"],
@@ -259,11 +303,24 @@ exports.getAllProjects = async (req, res, next) => {
             },
             startDate: rawMod[i]["startDate"],
             endDate: rawMod[i]["endDate"],
-            status: rawMod[i]["status"],
+            status: status,
           });
         }
       }
-
+      let status = "";
+      if (result[j][11] == 0) {
+        status = "NotStarted";
+      } else if (result[j][11] == 1) {
+        status = "Ongoing";
+      } else if (result[j][11] == 2) {
+        status = "Upcoming";
+      } else if (result[j][11] == 3) {
+        status = "Paid";
+      } else if (result[j][11] == 4) {
+        status = "Completed";
+      } else if (result[j][11] == 5) {
+        status = "Issued";
+      }
       let project = {
         creator: result[j][0],
         userId: result[j][1],
@@ -276,10 +333,16 @@ exports.getAllProjects = async (req, res, next) => {
         modules: modules,
         investerId: result[j][9],
         investerAddress: result[j][10],
-        isOpened: result[j][11],
+        status: status,
       };
 
-      projects.push(project);
+      if (userId == "" && categoryId == "") projects.push(project);
+      else if (userId == project.userId && categoryId == "")
+        projects.push(project);
+      else if (userId == "" && categoryId == project.categoryId)
+        projects.push(project);
+      else if (userId == project.userId && categoryId == project.categoryId)
+        projects.push(project);
 
       modules = [];
     }
@@ -299,14 +362,14 @@ exports.getAllProjects = async (req, res, next) => {
   }
 };
 
-exports.donateProjectModule = async (req, res, next) => {
-  const { projectId, moduleId, userAddress, amount } = req.body;
+exports.donateProject = async (req, res, next) => {
+  const { projectId, moduleId, userAddress, amount, userId } = req.body;
 
   try {
     const contract = await getProjectContract();
     res.json({
       result: await contract.methods
-        .fundsToProjectModule(projectId, moduleId)
+        .fundsToProjectModule(projectId, moduleId, userId)
         .send({
           from: userAddress,
           value: amount,
@@ -320,6 +383,69 @@ exports.donateProjectModule = async (req, res, next) => {
     res.json({
       message: "" + err,
       success: false,
+    });
+    return;
+  }
+};
+
+exports.withdrawFunds = async (req, res, next) => {
+  const { ownerAddress, projectId, moduleId, userId } = req.body;
+
+  try {
+    const contract = await getProjectContract();
+
+    const result = await contract.methods
+      .withdrawFunds(ownerAddress, projectId, moduleId, userId)
+      .send({
+        from: ownerAddress,
+        gas: 2100000,
+      });
+
+    res.json({
+      message: "Funds withdraw successfully.",
+      success: true,
+      result: result,
+    });
+    return;
+  } catch (err) {
+    res.json({
+      success: false,
+      message: "" + err,
+    });
+    return;
+  }
+};
+
+exports.getUserStats = async (req, res, next) => {
+  const { userId } = req.body;
+  try {
+    const contract = await getProjectContract();
+
+    var result = await contract.methods.getUserStats().call();
+
+    let stats = [];
+
+    for (let i = 0; i < result.length; i++) {
+      let stat = {
+        userId: result[i][0],
+        contribution: result[i][2] ? `-${result[i][1]}` : `+${result[i][1]}`,
+        isFundsDonating: result[i][2],
+        timestamp: result[i][3],
+        description: result[i][4],
+      };
+      if (stat.userId == userId) stats.push(stat);
+    }
+
+    res.json({
+      message: "Stats fetched successfully.",
+      success: true,
+      stats: stats,
+    });
+    return;
+  } catch (err) {
+    res.json({
+      success: false,
+      error: `${err}`,
     });
     return;
   }

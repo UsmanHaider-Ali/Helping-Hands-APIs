@@ -24,7 +24,7 @@ var contractInput = {
 
 var contractOutput = JSON.parse(solc.compile(JSON.stringify(contractInput)));
 
-exports.deployeCampaignContract = async (req, res, next) => {
+exports.deployContract = async (req, res, next) => {
   const { creatorAddress } = req.body;
 
   var contractAbi =
@@ -171,11 +171,11 @@ exports.withdrawFunds = async (req, res, next) => {
 };
 
 exports.getCampaign = async (req, res, next) => {
-  const { id } = req.body;
+  const { campaignId } = req.body;
 
   try {
     const contract = await getCampaignContract();
-    let result = await contract.methods.getCampaign(id).call();
+    let result = await contract.methods.getCampaign(campaignId).call();
 
     let campaign = {
       creator: result[0],
@@ -207,7 +207,8 @@ exports.getCampaign = async (req, res, next) => {
   }
 };
 
-exports.getAllCampaigns = async (req, res, next) => {
+exports.getCampaigns = async (req, res, next) => {
+  const { userId, categoryId } = req.body;
   try {
     const contract = await getCampaignContract();
 
@@ -230,7 +231,14 @@ exports.getAllCampaigns = async (req, res, next) => {
         imageUrl: result[i][10],
         status: result[i][11] == 0 ? "Ongoing" : "Completed",
       };
-      campaigns.push(campaign);
+
+      if (userId == "" && categoryId == "") campaigns.push(campaign);
+      else if (userId == campaign.userId && categoryId == "")
+        campaigns.push(campaign);
+      else if (userId == "" && categoryId == campaign.categoryId)
+        campaigns.push(campaign);
+      else if (userId == campaign.userId && categoryId == campaign.categoryId)
+        campaigns.push(campaign);
     }
 
     res.json({
@@ -248,7 +256,7 @@ exports.getAllCampaigns = async (req, res, next) => {
   }
 };
 
-exports.getUsersCampaignsStats = async (req, res, next) => {
+exports.getUserStats = async (req, res, next) => {
   const { userId } = req.body;
   try {
     const contract = await getCampaignContract();
@@ -283,56 +291,12 @@ exports.getUsersCampaignsStats = async (req, res, next) => {
   }
 };
 
-exports.getMyCampaigns = async (req, res, next) => {
-  const id = req.body.id;
-  const creator = req.body.creator;
-  try {
-    const contract = await getCampaignContract();
-
-    var result = await contract.methods.getAllCampaigns().call();
-
-    let campaigns = [];
-
-    for (let i = 0; i < result.length; i++) {
-      let campaign = {
-        creator: result[i][0],
-        userId: result[i][1],
-        categoryId: result[i][2],
-        campaignId: result[i][3],
-        title: result[i][4],
-        description: result[i][5],
-        targetFunds: result[i][6],
-        deadline: result[i][7],
-        raisedFunds: result[i][8],
-        remainingFunds: result[i][9],
-        imageUrl: result[i][10],
-        status: result[i][11] == 0 ? "Ongoing" : "Completed",
-      };
-      if (campaign.userId == id && campaign.creator == creator)
-        campaigns.push(campaign);
-    }
-
-    res.json({
-      message: "Campaigns fetched successfully.",
-      success: true,
-      campaigns: campaigns,
-    });
-    return;
-  } catch (err) {
-    res.json({
-      success: false,
-      error: `${err}`,
-    });
-    return;
-  }
-};
-
 exports.getCampaignFunders = async (req, res, next) => {
-  const id = req.body.id;
+  const campaignId = req.body.campaignId;
   try {
     const contract = await getCampaignContract();
 
-    var result = await contract.methods.getCampaignFunders(id).call();
+    var result = await contract.methods.getCampaignFunders(campaignId).call();
 
     let funders = [];
 
@@ -349,98 +313,6 @@ exports.getCampaignFunders = async (req, res, next) => {
       message: "Funders fetched successfully.",
       success: true,
       funders: funders,
-    });
-    return;
-  } catch (err) {
-    res.json({
-      success: false,
-      error: `${err}`,
-    });
-    return;
-  }
-};
-
-exports.getAllCampaignsByCategory = async (req, res, next) => {
-  const id = req.body.id;
-  try {
-    const contract = await getCampaignContract();
-
-    var result = await contract.methods.getAllCampaigns().call();
-
-    let campaigns = [];
-
-    for (let i = 0; i < result.length; i++) {
-      let campaign = {
-        creator: result[i][0],
-        userId: result[i][1],
-        categoryId: result[i][2],
-        campaignId: result[i][3],
-        title: result[i][4],
-        description: result[i][5],
-        targetFunds: result[i][6],
-        deadline: result[i][7],
-        raisedFunds: result[i][8],
-        remainingFunds: result[i][9],
-        imageUrl: result[i][10],
-        status: result[i][11] == 0 ? "Ongoing" : "Completed",
-      };
-
-      if (campaign.categoryId == id) campaigns.push(campaign);
-    }
-
-    res.json({
-      message: "Campaigns fetched successfully.",
-      success: true,
-      campaigns: campaigns,
-    });
-    return;
-  } catch (err) {
-    res.json({
-      success: false,
-      error: `${err}`,
-    });
-    return;
-  }
-};
-
-exports.getMyCampaignsByCategory = async (req, res, next) => {
-  const categoryId = req.body.categoryId;
-  const userId = req.body.userId;
-  const creator = req.body.creator;
-  try {
-    const contract = await getCampaignContract();
-
-    var result = await contract.methods.getAllCampaigns().call();
-
-    let campaigns = [];
-
-    for (let i = 0; i < result.length; i++) {
-      let campaign = {
-        creator: result[i][0],
-        userId: result[i][1],
-        categoryId: result[i][2],
-        campaignId: result[i][3],
-        title: result[i][4],
-        description: result[i][5],
-        targetFunds: result[i][6],
-        deadline: result[i][7],
-        raisedFunds: result[i][8],
-        remainingFunds: result[i][9],
-        imageUrl: result[i][10],
-        status: result[i][11] == 0 ? "Ongoing" : "Completed",
-      };
-      if (
-        campaign.categoryId == categoryId &&
-        campaign.userId == userId &&
-        campaign.creator == creator
-      )
-        campaigns.push(campaign);
-    }
-
-    res.json({
-      message: "Campaigns fetched successfully.",
-      success: true,
-      campaigns: campaigns,
     });
     return;
   } catch (err) {

@@ -6,7 +6,7 @@ const campaignController = require("../controllers/campaign-controller.js");
 
 routes.post(
   "/deploy-campaign-contract",
-  campaignController.deployeCampaignContract
+  campaignController.deployContract
 );
 routes.post(
   "/create-campaign",
@@ -16,17 +16,8 @@ routes.post(
 routes.post("/send-funds", campaignController.donateFunds);
 routes.post("/withdraw-funds", campaignController.withdrawFunds);
 routes.post("/get-campaign", campaignController.getCampaign);
+routes.post("/get-campaigns", campaignController.getCampaigns);
 routes.post("/get-campaign-funders", campaignController.getCampaignFunders);
-routes.post("/get-users-stats", campaignController.getUsersCampaignsStats);
-routes.post("/get-all-campaigns", campaignController.getAllCampaigns);
-routes.post("/get-my-campaigns", campaignController.getMyCampaigns);
-routes.post(
-  "/get-all-campaigns-by-category",
-  campaignController.getAllCampaignsByCategory
-);
-routes.post(
-  "/get-my-campaigns-by-category",
-  campaignController.getMyCampaignsByCategory
-);
+routes.post("/get-user-stats", campaignController.getUserStats);
 
 module.exports = routes;

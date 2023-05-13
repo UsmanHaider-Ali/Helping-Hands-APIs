@@ -360,7 +360,7 @@ contract Project {
             userStatsStruct(
                 userId,
                 modules[moduleId].moduleFunds.raisedFunds,
-                true,
+                false,
                 block.timestamp,
                 concatStrings(
                     "Withdraw funds from project titled as ",
