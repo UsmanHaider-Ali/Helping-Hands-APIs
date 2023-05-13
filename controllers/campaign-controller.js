@@ -48,9 +48,9 @@ exports.deployeCampaignContract = async (req, res, next) => {
       );
 
       res.json({
-        result: contractReceipt,
         message: "Contract deployed successfully.",
         success: true,
+        result: contractReceipt,
       });
       return;
     });
@@ -71,10 +71,7 @@ exports.createCampaign = async (req, res, next) => {
   var imageUrl = "";
 
   if (req.file === undefined) {
-    res.json({
-      message: "Please select the image.",
-      success: false,
-    });
+    imageUrl = "_";
     return;
   } else {
     imageUrl = req.file.path;
@@ -105,17 +102,17 @@ exports.createCampaign = async (req, res, next) => {
     .send({ from: creator, gas: gasLimit }, (error, transaction) => {
       if (error) {
         res.json({
-          error,
           message: "Error while creating campaign.",
           success: false,
+          error,
         });
         return;
       }
 
       res.json({
-        result: transaction,
         message: "Campaign created successfully.",
         success: true,
+        result: transaction,
       });
       return;
     });
@@ -240,6 +237,41 @@ exports.getAllCampaigns = async (req, res, next) => {
       message: "Campaigns fetched successfully.",
       success: true,
       campaigns: campaigns,
+    });
+    return;
+  } catch (err) {
+    res.json({
+      success: false,
+      error: `${err}`,
+    });
+    return;
+  }
+};
+
+exports.getUsersCampaignsStats = async (req, res, next) => {
+  const { userId } = req.body;
+  try {
+    const contract = await getCampaignContract();
+
+    var result = await contract.methods.getUserStats().call();
+
+    let stats = [];
+
+    for (let i = 0; i < result.length; i++) {
+      let stat = {
+        userId: result[i][0],
+        contribution: result[i][2] ? `-${result[i][1]}` : `+${result[i][1]}`,
+        isFundsDonating: result[i][2],
+        timestamp: result[i][3],
+        description: result[i][4],
+      };
+      if (stat.userId == userId) stats.push(stat);
+    }
+
+    res.json({
+      message: "Stats fetched successfully.",
+      success: true,
+      stats: stats,
     });
     return;
   } catch (err) {
