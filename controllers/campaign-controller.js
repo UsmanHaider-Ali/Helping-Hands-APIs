@@ -2,8 +2,6 @@ var web3 = require("../provider.js");
 var solc = require("solc");
 var fs = require("fs");
 
-const gasLimit = 2100000;
-
 var campaignContractFile = fs.readFileSync("contracts/Campaign.sol").toString();
 
 var contractInput = {
@@ -40,7 +38,7 @@ exports.deployContract = async (req, res, next) => {
       data: contractByteCode,
       arguments: [],
     })
-    .send({ from: creatorAddress, gas: gasLimit })
+    .send({ from: creatorAddress, gas: 3610857 })
     .on("receipt", (contractReceipt) => {
       fs.writeFileSync(
         "build/addresses/campaign-contract-address.json",
@@ -72,7 +70,6 @@ exports.createCampaign = async (req, res, next) => {
 
   if (req.file === undefined) {
     imageUrl = "_";
-    return;
   } else {
     imageUrl = req.file.path;
   }
@@ -99,7 +96,7 @@ exports.createCampaign = async (req, res, next) => {
       deadline,
       imageUrl
     )
-    .send({ from: creator, gas: gasLimit }, (error, transaction) => {
+    .send({ from: creator, gas: 645077 }, (error, transaction) => {
       if (error) {
         res.json({
           message: "Error while creating campaign.",
@@ -129,7 +126,7 @@ exports.donateFunds = async (req, res, next) => {
       result: await contract.methods.donateFunds(campaignId, userId).send({
         from: userAddress,
         value: amount,
-        gas: gasLimit,
+        gas: 470495,
       }),
     });
     return;
@@ -152,7 +149,7 @@ exports.withdrawFunds = async (req, res, next) => {
       .withdrawFunds(ownerAddress, campaignId, userId)
       .send({
         from: ownerAddress,
-        gas: gasLimit,
+        gas: 268363,
       });
 
     res.json({

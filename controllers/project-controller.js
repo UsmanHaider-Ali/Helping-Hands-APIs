@@ -98,7 +98,7 @@ exports.createProject = async (req, res, next) => {
       investerId,
       investerAddress
     )
-    .send({ from: creator, gas: 2000000 }, (error, transaction) => {
+    .send({ from: creator, gas: 723898 }, (error, transaction) => {
       if (error) {
         res.json({
           message: "Error while creating project.",
@@ -139,7 +139,7 @@ exports.createModule = async (req, res, next) => {
       startDate,
       endDate
     )
-    .send({ from: creator, gas: 2000000 }, (error, transaction) => {
+    .send({ from: creator, gas: 611360 }, (error, transaction) => {
       if (error) {
         res.json({
           error,
@@ -373,7 +373,7 @@ exports.donateProject = async (req, res, next) => {
         .send({
           from: userAddress,
           value: amount,
-          gas: 4700000,
+          gas: 399254,
         }),
       message: "Funds donated successfully.",
       success: true,
@@ -398,7 +398,7 @@ exports.withdrawFunds = async (req, res, next) => {
       .withdrawFunds(ownerAddress, projectId, moduleId, userId)
       .send({
         from: ownerAddress,
-        gas: 2100000,
+        gas: 299290,
       });
 
     res.json({
