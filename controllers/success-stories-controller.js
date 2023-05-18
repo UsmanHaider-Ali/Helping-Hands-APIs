@@ -1,6 +1,5 @@
 const Validator = require("validatorjs");
 const mongoose = require("mongoose");
-const moment = require("moment");
 
 const validationRules = require("../middlewares/validations.js");
 
@@ -19,7 +18,7 @@ exports.createSuccessStory = async (req, res, next) => {
     imagePath = req.file.path;
   }
 
-  const { userId, categoryId, title, description, image } = req.body;
+  const { userId, categoryId, title, description } = req.body;
 
   const validation = new Validator(
     { userId, categoryId, title, description },
@@ -34,9 +33,7 @@ exports.createSuccessStory = async (req, res, next) => {
     });
     return;
   }
-
-  const now = moment();
-  const formattedDate = now.format("DD-MM-YYYY");
+  const now = new Date().getTime();
 
   const newStory = new successStoriesModel({
     _id: new mongoose.Types.ObjectId(),
@@ -45,12 +42,12 @@ exports.createSuccessStory = async (req, res, next) => {
     title: title,
     description: description,
     image: imagePath,
-    timeStamp: formattedDate,
+    timeStamp: now,
   });
 
-  const result = await newStory.save();
+  const story = await newStory.save();
 
-  if (result == null) {
+  if (story == null) {
     res.send({
       message: "Something wrong, please try again.",
       success: false,
@@ -61,19 +58,17 @@ exports.createSuccessStory = async (req, res, next) => {
   res.send({
     message: "Success Story created successfully.",
     success: true,
-    result: result,
+    story: story,
   });
 };
 
 exports.getAllSuccessStories = async (req, res, next) => {
-  const _id = req.body._id;
-
-  const stoires = await successStoriesModel.find();
+  const stories = await successStoriesModel.find();
 
   res.send({
     message: "Success Stories fetched successfully.",
     success: true,
-    result: stoires,
+    stories: stories,
   });
 };
 

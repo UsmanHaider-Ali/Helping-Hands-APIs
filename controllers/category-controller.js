@@ -51,12 +51,12 @@ exports.createCategory = async (req, res, next) => {
 };
 
 exports.getAllCategories = async (req, res, next) => {
-  const category = await categoryModel.find();
+  const categories = await categoryModel.find();
 
   res.send({
     message: "Category fetched successfully.",
     success: true,
-    data: category,
+    categories: categories,
   });
 };
 

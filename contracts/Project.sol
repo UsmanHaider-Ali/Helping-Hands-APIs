@@ -3,12 +3,11 @@ pragma solidity ^0.8.7;
 
 contract Project {
     enum statusEnum {
-        NotStarted,
+        Pitched,
+        Scheduled,
         Ongoing,
-        Upcoming,
-        Paid,
         Completed,
-        Issued
+        Closed
     }
 
     event Action(
@@ -38,6 +37,7 @@ contract Project {
         moduleStructure moduleStruct;
         string investerId;
         address investerAddress;
+        uint256 equity;
         statusEnum status;
     }
 
@@ -46,8 +46,6 @@ contract Project {
         uint256 raisedFunds;
         uint256 remainingFunds;
     }
-
-    address projectCreator;
 
     uint projectsCount;
     uint modulesCount;
@@ -72,11 +70,10 @@ contract Project {
         uint256 targetFunds,
         string memory imageURL,
         string memory investerId,
-        address investerAddress
+        address investerAddress,
+        uint256 equity
     ) public returns (bool) {
         require(targetFunds > 0, "Target funds can't be zero.");
-
-        projectCreator = msg.sender;
 
         projectStructre memory project;
 
@@ -92,7 +89,8 @@ contract Project {
         project.imageURL = imageURL;
         project.investerId = investerId;
         project.investerAddress = investerAddress;
-        project.status = statusEnum.NotStarted;
+        project.equity = equity;
+        project.status = statusEnum.Pitched;
 
         projects.push(project);
         projectExist[projectsCount] = true;
@@ -100,7 +98,90 @@ contract Project {
 
         emit Action(
             projectsCount++,
-            "Project Created",
+            "Idea Pitched",
+            msg.sender,
+            block.timestamp
+        );
+
+        return true;
+    }
+
+    function startProject(
+        string memory userId,
+        uint256 projectId,
+        uint256 targetFunds,
+        string memory investerId,
+        address investerAddress,
+        uint256 equity
+    ) public returns (bool) {
+        require(projectExist[projectId], "Project not found.");
+        require(
+            compareStrings(projects[projectId].userId, userId),
+            "Only owner can start the project."
+        );
+        require(
+            projects[projectId].status == statusEnum.Pitched,
+            "Project is already started."
+        );
+
+        projects[projectId].projectFunds.targetFunds = targetFunds;
+        projects[projectId].projectFunds.raisedFunds = 0;
+        projects[projectId].projectFunds.remainingFunds = targetFunds;
+        projects[projectId].investerId = investerId;
+        projects[projectId].investerAddress = investerAddress;
+        projects[projectId].equity = equity;
+        projects[projectId].status = statusEnum.Scheduled;
+
+        emit Action(
+            projectId,
+            "Project Scheduled",
+            msg.sender,
+            block.timestamp
+        );
+
+        return true;
+    }
+
+    // function updateProjectStatus(
+    //     string memory userId,
+    //     uint256 projectId,
+    //     statusEnum status
+    // ) public returns (bool) {
+    //     require(projectExist[projectId], "Project not found.");
+    //     require(
+    //         compareStrings(projects[projectId].userId, userId),
+    //         "Only owner can change status of the project."
+    //     );
+
+    //     projects[projectId].status = status;
+
+    //     emit Action(
+    //         projectsCount++,
+    //         "Project Status Changed.",
+    //         msg.sender,
+    //         block.timestamp
+    //     );
+
+    //     return true;
+    // }
+
+    function updateModuleStatus(
+        string memory userId,
+        uint256 moduleId,
+        uint256 projectId,
+        statusEnum status
+    ) public returns (bool) {
+        require(moduleExist[moduleId], "Module not found.");
+        require(
+            compareStrings(projects[projectId].userId, userId),
+            "Only owner can change status of the module."
+        );
+
+        modules[moduleId].status = status;
+
+        emit Action(
+            projectsCount++,
+            "Module Status Changed.",
             msg.sender,
             block.timestamp
         );
@@ -128,6 +209,10 @@ contract Project {
         uint256 endTime
     ) public returns (bool) {
         require(projectExist[projectId], "Project not found.");
+        require(
+            projects[projectId].status != statusEnum.Pitched,
+            "Project is not started yet."
+        );
         require(targetFunds > 0, "Target funds can't be zero.");
 
         moduleStructure memory module;
@@ -141,14 +226,19 @@ contract Project {
         module.moduleFunds.remainingFunds = targetFunds;
         module.startTime = startTime;
         module.endTime = endTime;
-        module.status = statusEnum.NotStarted;
+
+        if (startTime > block.timestamp) {
+            module.status = statusEnum.Scheduled;
+        } else if (startTime <= block.timestamp) {
+            module.status = statusEnum.Ongoing;
+        }
 
         modules.push(module);
         moduleExist[modulesCount] = true;
         modulesOf[address(this)] = module;
 
         projects[projectId].moduleStruct = module;
-        projects[projectId].status = statusEnum.NotStarted;
+        projects[projectId].status = statusEnum.Ongoing;
 
         emit Action(
             modulesCount++,
@@ -159,105 +249,53 @@ contract Project {
         return true;
     }
 
-    function getProject(uint id) public view returns (projectStructre memory) {
+    function getProject(uint id) public returns (projectStructre memory) {
         require(projectExist[id], "Project not found.");
-
+        updateAllModulesStatus();
         return projects[id];
     }
 
-    function getModule(uint id) public view returns (moduleStructure memory) {
-        require(moduleExist[id], "Module not found.");
-
-        return modules[id];
-    }
-
-    function getAllProjects() public view returns (projectStructre[] memory) {
+    function getAllProjects() public returns (projectStructre[] memory) {
+        updateAllModulesStatus();
         return projects;
     }
 
-    function getAllModules() public view returns (moduleStructure[] memory) {
+    function getModule(uint id) public returns (moduleStructure memory) {
+        require(moduleExist[id], "Module not found.");
+        updateOneModuleStatus(id);
+        return modules[id];
+    }
+
+    function getAllModules() public returns (moduleStructure[] memory) {
+        updateAllModulesStatus();
+
         return modules;
     }
 
-    function getProjectRaisedFunds(uint id) public view returns (uint256) {
-        require(projectExist[id], "Project not found.");
-
-        return projects[id].projectFunds.raisedFunds;
+    function updateOneModuleStatus(uint id) public {
+        if (modules[id].startTime > block.timestamp) {
+            modules[id].status = statusEnum.Scheduled;
+        }
+        if (modules[id].startTime <= block.timestamp) {
+            modules[id].status = statusEnum.Ongoing;
+        }
+        if (modules[id].endTime < block.timestamp) {
+            modules[id].status = statusEnum.Completed;
+        }
     }
 
-    function getProjectRemainingFunds(uint id) public view returns (uint256) {
-        require(projectExist[id], "Project not found.");
-
-        return projects[id].projectFunds.remainingFunds;
-    }
-
-    function getModuleRaisedFunds(uint id) public view returns (uint256) {
-        require(moduleExist[id], "Module not found.");
-
-        return modules[id].moduleFunds.raisedFunds;
-    }
-
-    function getModuleRemainingFunds(uint id) public view returns (uint256) {
-        require(moduleExist[id], "Module not found.");
-
-        return modules[id].moduleFunds.remainingFunds;
-    }
-
-    function updateProjectStatus(
-        uint projectId,
-        statusEnum status
-    ) public returns (bool) {
-        require(projectExist[projectId], "Project not found.");
-
-        projects[projectId].status = status;
-
-        emit Action(
-            projectId,
-            "Project Status Updated",
-            msg.sender,
-            block.timestamp
-        );
-        return true;
-    }
-
-    function getProjectStatus(uint id) public view returns (statusEnum) {
-        require(projectExist[id], "Project not found.");
-
-        return projects[id].status;
-    }
-
-    function updateModuleStatus(
-        uint moduleId,
-        statusEnum status
-    ) public returns (bool) {
-        require(moduleExist[moduleId], "Module not found.");
-
-        modules[moduleId].status = status;
-
-        emit Action(
-            moduleId,
-            "Module Status Updated",
-            msg.sender,
-            block.timestamp
-        );
-
-        return true;
-    }
-
-    function getModuleStatus(uint id) public view returns (statusEnum) {
-        require(moduleExist[id], "Module not found.");
-
-        return modules[id].status;
-    }
-
-    function getCurrentTimestamp() public view returns (uint) {
-        return block.timestamp;
-    }
-
-    function getCurrentTimestampWithDuration(
-        uint duration
-    ) public view returns (uint) {
-        return block.timestamp + duration;
+    function updateAllModulesStatus() public {
+        for (uint256 i = 0; i < modules.length; i++) {
+            if (modules[i].startTime > block.timestamp) {
+                modules[i].status = statusEnum.Scheduled;
+            }
+            if (modules[i].startTime <= block.timestamp) {
+                modules[i].status = statusEnum.Ongoing;
+            }
+            if (modules[i].endTime < block.timestamp) {
+                modules[i].status = statusEnum.Completed;
+            }
+        }
     }
 
     function concatStrings(
@@ -283,8 +321,14 @@ contract Project {
 
         require(msg.value > 0 ether, "Ether must be greater than zero.");
 
-        // require(modules[moduleId].startTime <= block.timestamp , "Module not started, please wait.");
-        // require(modules[moduleId].endTime <= block.timestamp, "Deadline has passed for this module.");
+        require(
+            block.timestamp >= modules[moduleId].startTime,
+            "Module not started, please wait."
+        );
+        require(
+            block.timestamp <= modules[moduleId].endTime,
+            "Deadline has passed for this module."
+        );
 
         require(
             modules[moduleId].moduleFunds.raisedFunds <=
@@ -321,7 +365,23 @@ contract Project {
 
         contractBalance += msg.value;
 
-        modules[moduleId].status = statusEnum.Paid;
+        // if (
+        //     modules[moduleId].moduleFunds.raisedFunds >=
+        //     modules[moduleId].moduleFunds.targetFunds
+        // ) {
+        //     modules[moduleId].status = statusEnum.Completed;
+        // } else {
+        //     modules[moduleId].status = statusEnum.Ongoing;
+        // }
+
+        // if (
+        //     projects[projectId].projectFunds.raisedFunds >=
+        //     projects[projectId].projectFunds.targetFunds
+        // ) {
+        //     projects[projectId].status = statusEnum.Completed;
+        // } else {
+        //     projects[projectId].status = statusEnum.Ongoing;
+        // }
 
         emit Action(
             moduleId,
@@ -344,10 +404,6 @@ contract Project {
             "Module has already completed."
         );
         require(
-            ownerAddress == projectCreator,
-            "Only creater can withdraw funds."
-        );
-        require(
             modules[moduleId].moduleFunds.raisedFunds > 0,
             "Not enough balance to withdraw."
         );
@@ -360,7 +416,7 @@ contract Project {
             userStatsStruct(
                 userId,
                 modules[moduleId].moduleFunds.raisedFunds,
-                false,
+                true,
                 block.timestamp,
                 concatStrings(
                     "Withdraw funds from project titled as ",
@@ -373,8 +429,36 @@ contract Project {
 
         contractBalance -= modules[moduleId].moduleFunds.raisedFunds;
 
-        modules[moduleId].status = statusEnum.Completed;
+        // if (
+        //     modules[moduleId].moduleFunds.raisedFunds >=
+        //     modules[moduleId].moduleFunds.targetFunds
+        // ) {
+        //     modules[moduleId].status = statusEnum.Completed;
+        // } else {
+        //     modules[moduleId].status = statusEnum.Ongoing;
+        // }
 
-        emit Action(moduleId, "Module Completed", msg.sender, block.timestamp);
+        // if (
+        //     projects[projectId].projectFunds.raisedFunds >=
+        //     projects[projectId].projectFunds.targetFunds
+        // ) {
+        //     projects[projectId].status = statusEnum.Completed;
+        // } else {
+        //     projects[projectId].status = statusEnum.Ongoing;
+        // }
+
+        emit Action(
+            moduleId,
+            "Module Funds Withdrawn",
+            msg.sender,
+            block.timestamp
+        );
+    }
+
+    function compareStrings(
+        string memory a,
+        string memory b
+    ) private pure returns (bool) {
+        return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
     }
 }

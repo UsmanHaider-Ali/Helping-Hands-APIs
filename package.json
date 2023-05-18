@@ -4,13 +4,13 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
- },
+    "start": "nodemon server.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@truffle/hdwallet-provider": "^2.1.11",
     "axios": "^1.2.0",
     "bcrypt": "^5.1.0",
     "body-parser": "^1.20.1",

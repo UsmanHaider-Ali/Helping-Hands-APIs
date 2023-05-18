@@ -11,7 +11,9 @@ routes.post(
   uploadImage.single("imageUrl"),
   projectController.createProject
 );
+routes.post("/start-project", projectController.startProject);
 routes.post("/create-module", projectController.createModule);
+routes.post("/update-module", projectController.updateModule);
 routes.post("/get-project", projectController.getProject);
 routes.post("/get-projects", projectController.getProjects);
 routes.post("/donate-project", projectController.donateProject);

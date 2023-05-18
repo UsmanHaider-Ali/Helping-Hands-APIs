@@ -1,5 +1,7 @@
 var web3 = require("../provider.js");
 var solc = require("solc");
+const { exec } = require("child_process");
+
 var fs = require("fs");
 
 var campaignContractFile = fs.readFileSync("contracts/Campaign.sol").toString();
@@ -21,6 +23,23 @@ var contractInput = {
 };
 
 var contractOutput = JSON.parse(solc.compile(JSON.stringify(contractInput)));
+
+function runTruffleMigrate() {
+  return new Promise((resolve, reject) => {
+    const migrateProcess = exec("truffle migrate");
+
+    migrateProcess.stdout.on("data", (data) => {
+      console.log(data);
+    });
+    migrateProcess.on("exit", (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error("Truffle migration failed."));
+      }
+    });
+  });
+}
 
 exports.deployContract = async (req, res, next) => {
   const { creatorAddress } = req.body;
@@ -79,6 +98,7 @@ exports.createCampaign = async (req, res, next) => {
     title,
     description,
     categoryId,
+    startTimestamp,
     deadline,
     targetFunds,
     creator,
@@ -93,10 +113,11 @@ exports.createCampaign = async (req, res, next) => {
       title,
       description,
       targetFunds,
+      startTimestamp,
       deadline,
       imageUrl
     )
-    .send({ from: creator, gas: 645077 }, (error, transaction) => {
+    .send({ from: creator, gas: 6450770 }, (error, transaction) => {
       if (error) {
         res.json({
           message: "Error while creating campaign.",
@@ -171,8 +192,22 @@ exports.getCampaign = async (req, res, next) => {
   const { campaignId } = req.body;
 
   try {
+    // await runTruffleMigrate();
+
     const contract = await getCampaignContract();
     let result = await contract.methods.getCampaign(campaignId).call();
+
+    let rawStatus = result[12];
+
+    var status = "";
+
+    if (rawStatus == 0) {
+      status = "Scheduled";
+    } else if (rawStatus == 1) {
+      status = "Ongoing";
+    } else if (rawStatus == 2) {
+      status = "Completed";
+    }
 
     let campaign = {
       creator: result[0],
@@ -182,11 +217,12 @@ exports.getCampaign = async (req, res, next) => {
       title: result[4],
       description: result[5],
       targetFunds: result[6],
-      deadline: result[7],
-      raisedFunds: result[8],
-      remainingFunds: result[9],
-      imageUrl: result[10],
-      status: result[11] == 0 ? "Ongoing" : "Completed",
+      startTime: result[7],
+      deadline: result[8],
+      raisedFunds: result[9],
+      remainingFunds: result[10],
+      imageUrl: result[11],
+      status: status,
     };
 
     res.json({
@@ -207,6 +243,8 @@ exports.getCampaign = async (req, res, next) => {
 exports.getCampaigns = async (req, res, next) => {
   const { userId, categoryId } = req.body;
   try {
+    // await runTruffleMigrate();
+
     const contract = await getCampaignContract();
 
     var result = await contract.methods.getAllCampaigns().call();
@@ -214,6 +252,18 @@ exports.getCampaigns = async (req, res, next) => {
     let campaigns = [];
 
     for (let i = 0; i < result.length; i++) {
+      let rawStatus = result[i][12];
+
+      var status = "";
+
+      if (rawStatus == 0) {
+        status = "Scheduled";
+      } else if (rawStatus == 1) {
+        status = "Ongoing";
+      } else if (rawStatus == 2) {
+        status = "Completed";
+      }
+
       let campaign = {
         creator: result[i][0],
         userId: result[i][1],
@@ -222,11 +272,12 @@ exports.getCampaigns = async (req, res, next) => {
         title: result[i][4],
         description: result[i][5],
         targetFunds: result[i][6],
-        deadline: result[i][7],
-        raisedFunds: result[i][8],
-        remainingFunds: result[i][9],
-        imageUrl: result[i][10],
-        status: result[i][11] == 0 ? "Ongoing" : "Completed",
+        startTime: result[i][7],
+        deadline: result[i][8],
+        raisedFunds: result[i][9],
+        remainingFunds: result[i][10],
+        imageUrl: result[i][11],
+        status: status,
       };
 
       if (userId == "" && categoryId == "") campaigns.push(campaign);
@@ -273,9 +324,22 @@ exports.getUserStats = async (req, res, next) => {
       if (stat.userId == userId) stats.push(stat);
     }
 
+    let totalIn = 0;
+    let totalOut = 0;
+
+    stats.forEach((stat) => {
+      const contribution = parseInt(stat.contribution);
+      if (contribution > 0) {
+        totalIn += contribution;
+      } else if (contribution < 0) {
+        totalOut += contribution;
+      }
+    });
     res.json({
       message: "Stats fetched successfully.",
       success: true,
+      totalIn: `${totalIn}`,
+      totalOut: `${Math.abs(totalOut)}`,
       stats: stats,
     });
     return;

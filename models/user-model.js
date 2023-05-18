@@ -26,32 +26,12 @@ const userSchema = mongoose.Schema({
     lowercase: true,
     unique: true,
   },
-  isEmailVerified: {
-    type: Boolean,
-    default: false,
-    enum: [true, false],
-  },
   phone: {
     type: String,
     required: true,
     trim: true,
   },
-  isPhoneVerified: {
-    type: Boolean,
-    default: false,
-    enum: [true, false],
-  },
   address: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-  latitude: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-  longitude: {
     type: String,
     required: true,
     trim: true,
@@ -59,11 +39,6 @@ const userSchema = mongoose.Schema({
   date_of_birth: {
     type: String,
     required: true,
-  },
-  user_type: {
-    type: String,
-    required: true,
-    enum: ["_", "Invester", "Entrepreneur", "Charity Organization"],
   },
   password: {
     type: String,

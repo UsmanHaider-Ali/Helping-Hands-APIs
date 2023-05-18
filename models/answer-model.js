@@ -16,13 +16,13 @@ const answerSchema = mongoose.Schema({
   },
   answer: {
     type: String,
-    required: true,
+    default: "",
     trim: true,
   },
   image: {
     type: String,
-    required: true,
     trim: true,
+    default: "",
   },
   timestamp: {
     type: String,

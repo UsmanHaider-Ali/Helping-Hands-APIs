@@ -1,3 +1,4 @@
+
 exports.registerUserValidation = {
   wallet_key: "required",
   name: "required",
@@ -6,9 +7,6 @@ exports.registerUserValidation = {
   address: "required",
   date_of_birth: "required",
   password: "required",
-  user_type: "required",
-  longitude: "required",
-  latitude: "required",
 };
 
 exports.loginValidations = {
@@ -22,6 +20,7 @@ exports.nameValidation = {
 
 exports.questionValidation = {
   question: "required",
+  description: "required",
   userId: "required",
   categoryId: "required",
 };
@@ -33,7 +32,6 @@ exports.storyValidation = {
   description: "required",
 };
 exports.answerValidation = {
-  answer: "required",
   userId: "required",
   questionId: "required",
 };
@@ -59,9 +57,6 @@ exports.updateUserValidation = {
   name: "required",
   address: "required",
   date_of_birth: "required",
-  longitude: "required",
-  latitude: "required",
-  address_details: "required",
 };
 
 exports.socialLoginValidation = {

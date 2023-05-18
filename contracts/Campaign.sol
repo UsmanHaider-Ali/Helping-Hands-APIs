@@ -3,6 +3,7 @@ pragma solidity ^0.8.7;
 
 contract Campaign {
     enum statusEnum {
+        Scheduled,
         Ongoing,
         Completed
     }
@@ -34,14 +35,16 @@ contract Campaign {
         string title;
         string description;
         uint256 targetFunds;
+        uint256 startTime;
         uint256 deadline;
         uint256 raisedFunds;
         uint256 remainingFunds;
         string imageURL;
         statusEnum status;
+        bool isWithdraw;
     }
 
-    address campaignCreator;
+    // address campaignCreator;
     uint campaignsCount;
     campaignStructre[] campaigns;
     userStatsStruct[] userStats;
@@ -58,11 +61,10 @@ contract Campaign {
         string memory title,
         string memory description,
         uint256 targetFunds,
+        uint256 startTime,
         uint256 deadline,
         string memory imageURL
     ) public returns (bool) {
-        campaignCreator = msg.sender;
-
         campaignStructre memory campaign;
 
         campaign.userId = userId;
@@ -72,11 +74,18 @@ contract Campaign {
         campaign.title = title;
         campaign.description = description;
         campaign.targetFunds = targetFunds;
+        campaign.startTime = startTime;
         campaign.deadline = deadline;
         campaign.raisedFunds = 0;
         campaign.remainingFunds = targetFunds;
         campaign.imageURL = imageURL;
-        campaign.status = statusEnum.Ongoing;
+        campaign.isWithdraw = false;
+
+        if (startTime > block.timestamp) {
+            campaign.status = statusEnum.Scheduled;
+        } else if (startTime <= block.timestamp) {
+            campaign.status = statusEnum.Ongoing;
+        }
 
         campaigns.push(campaign);
         campaignExist[campaignsCount] = true;
@@ -97,15 +106,24 @@ contract Campaign {
         string memory userId
     ) public payable returns (bool) {
         require(
+            campaigns[campaignId].isWithdraw == false,
+            "Campaign has closed."
+        );
+        require(
             campaigns[campaignId].status != statusEnum.Completed,
             "Campaign has completed."
         );
         require(msg.value > 0 ether, "Ether must be greater than zero.");
         require(campaignExist[campaignId], "Campaign not found.");
         require(
-            block.timestamp >= campaigns[campaignId].deadline,
+            block.timestamp >= campaigns[campaignId].startTime,
+            "Not started yet."
+        );
+        require(
+            block.timestamp <= campaigns[campaignId].deadline,
             "Deadline has passed."
         );
+
         require(
             campaigns[campaignId].raisedFunds <=
                 campaigns[campaignId].targetFunds,
@@ -119,7 +137,7 @@ contract Campaign {
 
         require(
             !compareStrings(campaigns[campaignId].userId, userId),
-            "Creater can't funds his own campaign."
+            "Creator can't funds his own campaign."
         );
 
         stats.totalFunding += 1;
@@ -183,15 +201,35 @@ contract Campaign {
         return userStats;
     }
 
-    function getCampaign(
-        uint id
-    ) public view returns (campaignStructre memory) {
+    function getCampaign(uint id) public returns (campaignStructre memory) {
         require(campaignExist[id], "Campaign not found.");
+
+        if (campaigns[id].startTime > block.timestamp) {
+            campaigns[id].status = statusEnum.Scheduled;
+        }
+        if (campaigns[id].startTime <= block.timestamp) {
+            campaigns[id].status = statusEnum.Ongoing;
+        }
+        if (campaigns[id].deadline < block.timestamp) {
+            campaigns[id].status = statusEnum.Completed;
+        }
 
         return campaigns[id];
     }
 
-    function getAllCampaigns() public view returns (campaignStructre[] memory) {
+    function getAllCampaigns() public returns (campaignStructre[] memory) {
+        for (uint256 i = 0; i < campaigns.length; i++) {
+            if (campaigns[i].startTime > block.timestamp) {
+                campaigns[i].status = statusEnum.Scheduled;
+            }
+            if (campaigns[i].startTime <= block.timestamp) {
+                campaigns[i].status = statusEnum.Ongoing;
+            }
+            if (campaigns[i].deadline < block.timestamp) {
+                campaigns[i].status = statusEnum.Completed;
+            }
+        }
+
         return campaigns;
     }
 
@@ -213,20 +251,20 @@ contract Campaign {
         string memory userId
     ) public returns (bool) {
         require(
-            campaigns[campaignId].status != statusEnum.Completed,
-            "Campaign has completed."
-        );
-        require(
-            ownerAddress == campaignCreator,
-            "Only creater can withdraw funds, creater address doesn't match."
+            ownerAddress == campaigns[campaignId].creator,
+            "Only createor can withdraw funds, creator address doesn't match."
         );
         require(
             compareStrings(campaigns[campaignId].userId, userId),
-            "Only creater can withdraw funds, userId doesn't match."
+            "Only creator can withdraw funds, userId doesn't match."
         );
         require(
             campaigns[campaignId].raisedFunds > 0,
             "Not enough balance to withdraw."
+        );
+        require(
+            campaigns[campaignId].isWithdraw == false,
+            "Funds of this campaign already withdrawn."
         );
 
         address payable owner = payable(ownerAddress);
@@ -249,6 +287,7 @@ contract Campaign {
         contractBalance -= campaigns[campaignId].raisedFunds;
 
         campaigns[campaignId].status = statusEnum.Completed;
+        campaigns[campaignId].isWithdraw = true;
 
         emit Action(
             campaignId,

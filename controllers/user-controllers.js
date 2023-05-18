@@ -18,42 +18,29 @@ exports.registerUser = async (req, res, next) => {
     imagePath = req.file.path;
   }
 
-  const {
-    wallet_key,
-    name,
-    email,
-    phone,
-    address,
-    date_of_birth,
-    password,
-    user_type,
-    longitude,
-    latitude,
-  } = req.body;
+  const { wallet_key, name, email, phone, address, date_of_birth, password } =
+    req.body;
 
-  const validation = new Validator(
-    {
-      wallet_key,
-      name,
-      email,
-      phone,
-      address,
-      date_of_birth,
-      password,
-      user_type,
-      longitude,
-      latitude,
-    },
-    validationRules.registerUserValidation
-  );
+  // const validation = new Validator(
+  //   {
+  //     wallet_key,
+  //     name,
+  //     email,
+  //     phone,
+  //     address,
+  //     date_of_birth,
+  //     password,
+  //   },
+  //   validationRules.registerUserValidation
+  // );
 
-  if (validation.fails()) {
-    res.json({
-      message: validation.errors.all(),
-      success: false,
-    });
-    return;
-  }
+  // if (validation.fails()) {
+  //   res.json({
+  //     message: validation.errors.all(),
+  //     success: false,
+  //   });
+  //   return;
+  // }
 
   const user = await userModel.findOne({ email });
 
@@ -72,7 +59,7 @@ exports.registerUser = async (req, res, next) => {
   const newPassword = await bcrypt.hash(password, 10);
 
   if (newPassword == null) {
-    res.send({
+    res.json({
       message: "Something wrong with password, please try again.",
       success: false,
     });
@@ -89,23 +76,18 @@ exports.registerUser = async (req, res, next) => {
     image: imagePath,
     name: name,
     email: email,
-    isEmailVerified: false,
     phone: phone,
-    isPhoneVerified: false,
     address: address,
-    latitude: latitude,
-    longitude: longitude,
     date_of_birth: date_of_birth,
-    user_type: user_type,
     password: newPassword,
   });
 
   const result = await newUser.save();
 
   if (result == null) {
-    res.send({
+    res.json({
       message: "Something wrong, please try again.",
-      success: true,
+      success: false,
     });
     if (!(req.file === undefined)) {
       var filePath = req.file.path;
@@ -114,12 +96,19 @@ exports.registerUser = async (req, res, next) => {
     return;
   }
 
-  sendEmail(
-    req,
-    res,
-    next,
-    "User registered, check email for OTP verification."
-  );
+  res.json({
+    message: "User registered successfully.",
+    success: true,
+    user: result,
+  });
+  return;
+
+  // sendEmail(
+  //   req,
+  //   res,
+  //   next,
+  //   "User registered, check email for OTP verification."
+  // );
 };
 
 exports.loginUser = async (req, res, next) => {
@@ -171,36 +160,29 @@ exports.loginUser = async (req, res, next) => {
     }
   );
 
-  if (user["isEmailVerified"]) {
-    res.json({
-      message: "User login successfully.",
-      success: true,
-      token: newToken,
-      user: {
-        id: user["_id"],
-        wallet_key: user["wallet_key"],
-        image: user["image"],
-        name: user["name"],
-        email: user["email"],
-        isEmailVerified: user["isEmailVerified"],
-        phone: user["phone"],
-        isPhoneVerified: user["isPhoneVerified"],
-        address: user["address"],
-        latitude: user["latitude"],
-        longitude: user["longitude"],
-        date_of_birth: user["date_of_birth"],
-        user_type: user["user_type"],
-      },
-    });
-    return;
-  }
+  res.json({
+    message: "User login successfully.",
+    success: true,
+    token: newToken,
+    user: {
+      _id: user["_id"],
+      wallet_key: user["wallet_key"],
+      image: user["image"],
+      name: user["name"],
+      email: user["email"],
+      phone: user["phone"],
+      address: user["address"],
+      date_of_birth: user["date_of_birth"],
+    },
+  });
+  return;
 
-  sendEmail(
-    req,
-    res,
-    next,
-    "Email not verified, check email for OTP verification."
-  );
+  // sendEmail(
+  //   req,
+  //   res,
+  //   next,
+  //   "Email not verified, check email for OTP verification."
+  // );
 };
 
 exports.socialLogin = async (req, res, next) => {
@@ -212,10 +194,6 @@ exports.socialLogin = async (req, res, next) => {
     // address,
     // date_of_birth,
     // password,
-    // user_type,
-    // longitude,
-    // latitude,
-    // address_details,
   } = req.body;
 
   const validation = new Validator(
@@ -228,10 +206,6 @@ exports.socialLogin = async (req, res, next) => {
       // address,
       // date_of_birth,
       // password,
-      // user_type,
-      // longitude,
-      // latitude,
-      // address_details,
     },
     validationRules.socialLoginValidation
   );
@@ -268,14 +242,9 @@ exports.socialLogin = async (req, res, next) => {
     image: "_",
     name: name,
     email: email,
-    isEmailVerified: false,
     phone: "_",
-    isPhoneVerified: false,
     address: "_",
-    latitude: "_",
-    longitude: "_",
     date_of_birth: "_",
-    user_type: "_",
     password: "_",
   });
 
@@ -309,12 +278,9 @@ exports.socialLogin = async (req, res, next) => {
       image: "_",
       name: result["name"],
       email: result["email"],
-      isEmailVerified: result["isEmailVerified"],
       phone: "_",
-      isPhoneVerified: result["isPhoneVerified"],
       address: "_",
       date_of_birth: "_",
-      user_type: "_",
       token: newToken,
     },
   });
@@ -346,53 +312,50 @@ exports.sendOpt = async (req, res, next) => {
   sendEmail(req, res, next, "Check email for OTP verification.");
 };
 
-exports.verifyEmail = async (req, res, next) => {
-  const { email } = req.body;
+// exports.verifyEmail = async (req, res, next) => {
+//   const { email } = req.body;
 
-  const validation = new Validator({ email }, validationRules.emailValidations);
+//   const validation = new Validator({ email }, validationRules.emailValidations);
 
-  if (validation.fails()) {
-    res.json({
-      message: validation.errors.first("email"),
-      success: false,
-    });
-    return;
-  }
+//   if (validation.fails()) {
+//     res.json({
+//       message: validation.errors.first("email"),
+//       success: false,
+//     });
+//     return;
+//   }
 
-  const user = await userModel.findOneAndUpdate(
-    { email },
-    { isEmailVerified: true },
-    { new: true }
-  );
+//   const user = await userModel.findOneAndUpdate(
+//     { email },
+//     { isEmailVerified: true },
+//     { new: true }
+//   );
 
-  if (user == null) {
-    res.json({
-      message: "User not found.",
-      success: false,
-    });
-    return;
-  }
+//   if (user == null) {
+//     res.json({
+//       message: "User not found.",
+//       success: false,
+//     });
+//     return;
+//   }
 
-  res.json({
-    message: "Email verified successfully.",
-    success: true,
-    // data: {
-    //   id: user["_id"],
-    //   wallet_key: user["wallet_key"],
-    //   image: user["image"],
-    //   name: user["name"],
-    //   email: user["email"],
-    //   isEmailVerified: user["isEmailVerified"],
-    //   phone: user["phone"],
-    //   isPhoneVerified: user["isPhoneVerified"],
-    //   address: user["address"],
-    //   latitude: user["latitude"],
-    //   longitude: user["longitude"],
-    //   date_of_birth: user["date_of_birth"],
-    //   user_type: user["user_type"],
-    // },
-  });
-};
+//   res.json({
+//     message: "Email verified successfully.",
+//     success: true,
+//     // data: {
+//     //   id: user["_id"],
+//     //   wallet_key: user["wallet_key"],
+//     //   image: user["image"],
+//     //   name: user["name"],
+//     //   email: user["email"],
+//     //   isEmailVerified: user["isEmailVerified"],
+//     //   phone: user["phone"],
+//     //   isPhoneVerified: user["isPhoneVerified"],
+//     //   address: user["address"],
+//     //   date_of_birth: user["date_of_birth"],
+//     // },
+//   });
+// };
 
 exports.updatePassword = async (req, res, next) => {
   const { email, old_password, new_password } = req.body;
@@ -420,15 +383,15 @@ exports.updatePassword = async (req, res, next) => {
     return;
   }
 
-  if (!user.isEmailVerified) {
-    sendEmail(
-      req,
-      res,
-      next,
-      "Email not verified, check email for OTP verification."
-    );
-    return;
-  }
+  // if (!user.isEmailVerified) {
+  //   sendEmail(
+  //     req,
+  //     res,
+  //     next,
+  //     "Email not verified, check email for OTP verification."
+  //   );
+  //   return;
+  // }
 
   const isPasswordMatched = await bcrypt.compare(old_password, user.password);
 
@@ -496,15 +459,15 @@ exports.resetPassword = async (req, res, next) => {
     return;
   }
 
-  if (!user.isEmailVerified) {
-    sendEmail(
-      req,
-      res,
-      next,
-      "Email not verified, check email for OTP verification."
-    );
-    return;
-  }
+  // if (!user.isEmailVerified) {
+  //   sendEmail(
+  //     req,
+  //     res,
+  //     next,
+  //     "Email not verified, check email for OTP verification."
+  //   );
+  //   return;
+  // }
 
   const isNewOldPassworSame = await bcrypt.compare(new_password, user.password);
   if (isNewOldPassworSame) {
@@ -532,17 +495,28 @@ exports.resetPassword = async (req, res, next) => {
   }
 };
 
+exports.getUser = async (req, res, next) => {
+  const { userId } = req.body;
+
+  const user = await userModel.findOne({ _id: userId });
+
+  if (user == null) {
+    res.json({
+      message: "User not found.",
+      success: false,
+    });
+    return;
+  }
+  res.json({
+    message: "User fetched successfully.",
+    success: true,
+    user: user,
+  });
+  return;
+};
+
 exports.updateUser = async (req, res, next) => {
-  const {
-    email,
-    wallet_key,
-    name,
-    address,
-    date_of_birth,
-    longitude,
-    latitude,
-    address_details,
-  } = req.body;
+  const { email, wallet_key, name, address, date_of_birth } = req.body;
 
   const validation = new Validator(
     {
@@ -551,9 +525,6 @@ exports.updateUser = async (req, res, next) => {
       name,
       address,
       date_of_birth,
-      longitude,
-      latitude,
-      address_details,
     },
     validationRules.updateUserValidation
   );
@@ -576,15 +547,15 @@ exports.updateUser = async (req, res, next) => {
     return;
   }
 
-  if (!user.isEmailVerified) {
-    sendEmail(
-      req,
-      res,
-      next,
-      "Email not verified, check email for OTP verification."
-    );
-    return;
-  }
+  // if (!user.isEmailVerified) {
+  //   sendEmail(
+  //     req,
+  //     res,
+  //     next,
+  //     "Email not verified, check email for OTP verification."
+  //   );
+  //   return;
+  // }
 
   // const updatedData =
   //   req.file === undefined
@@ -593,8 +564,6 @@ exports.updateUser = async (req, res, next) => {
   //         name: name,
   //         address: address,
   //         date_of_birth: date_of_birth,
-  //         longitude: longitude,
-  //         latitude: latitude,
   //       }
   //     : {
   //         wallet_key: wallet_key,
@@ -602,8 +571,6 @@ exports.updateUser = async (req, res, next) => {
   //         name: name,
   //         address: address,
   //         date_of_birth: date_of_birth,
-  //         longitude: longitude,
-  //         latitude: latitude,
   //       };
 
   var updatedUser = null;
@@ -616,8 +583,6 @@ exports.updateUser = async (req, res, next) => {
         name: name,
         address: address,
         date_of_birth: date_of_birth,
-        longitude: longitude,
-        latitude: latitude,
       },
       { new: true }
     );
@@ -630,8 +595,6 @@ exports.updateUser = async (req, res, next) => {
         name: name,
         address: address,
         date_of_birth: date_of_birth,
-        longitude: longitude,
-        latitude: latitude,
       },
       { new: true }
     );
@@ -648,20 +611,15 @@ exports.updateUser = async (req, res, next) => {
   res.json({
     message: "User updated successfully.",
     success: true,
-    data: {
+    user: {
       _id: updatedUserData["_id"],
       wallet_key: updatedUserData["wallet_key"],
       image: updatedUserData["image"],
       name: updatedUserData["name"],
       email: updatedUserData["email"],
-      isEmailVerified: updatedUserData["isEmailVerified"],
       phone: updatedUserData["phone"],
-      isPhoneVerified: updatedUserData["isPhoneVerified"],
       address: updatedUserData["address"],
-      latitude: updatedUserData["latitude"],
-      longitude: updatedUserData["longitude"],
       date_of_birth: updatedUserData["date_of_birth"],
-      user_type: updatedUserData["user_type"],
     },
   });
 };

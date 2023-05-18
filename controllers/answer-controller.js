@@ -1,23 +1,26 @@
 const Validator = require("validatorjs");
 const mongoose = require("mongoose");
-const moment = require("moment");
 
 const validationRules = require("../middlewares/validations.js");
 
 const answerModel = require("../models/answer-model.js");
 
 exports.createAnswer = async (req, res, next) => {
-  var imagePath = "";
+  const { answer, userId, questionId } = req.body;
 
+  var imagePath = "";
   if (req.file === undefined) {
-    imagePath = "_";
   } else {
     imagePath = req.file.path;
   }
-  const { answer, userId, questionId } = req.body;
+
+  if (req.file === undefined) {
+  } else {
+    imagePath = req.file.path;
+  }
 
   const validation = new Validator(
-    { questionId, userId, answer },
+    { questionId, userId },
     validationRules.answerValidation
   );
 
@@ -36,7 +39,7 @@ exports.createAnswer = async (req, res, next) => {
     return;
   }
 
-  const now = moment().format("HH:mm DD-MM-YYYY ");
+  const now = new Date().getTime();
 
   const newAnswer = new answerModel({
     _id: new mongoose.Types.ObjectId(),

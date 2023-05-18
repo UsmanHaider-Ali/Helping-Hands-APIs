@@ -17,15 +17,16 @@ routes.post("/social-login", userController.socialLogin);
 
 routes.post("/send-otp", userController.sendOpt);
 
-routes.post("/verify-email", userController.verifyEmail);
+// routes.post("/verify-email", userController.verifyEmail);
 
 routes.post("/update-password", userController.updatePassword);
 
 routes.post("/reset-password", userController.resetPassword);
+routes.post("/get-user", userController.getUser);
 
 routes.post(
   "/update-user",
-  checkAuth,
+  // checkAuth,
   uploadImage.single("image"),
   userController.updateUser
 );
